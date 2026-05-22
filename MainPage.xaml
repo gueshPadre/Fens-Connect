@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FENS_Connect.MainPage"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="*,Auto,Auto,Auto,*"
+          RowSpacing="25"
+          Padding="30,0">
+        <Label
+            Grid.Row="1"
+            Text="Welcome to your all-in-one safety app"
+            Style="{StaticResource WelcomeTitle}"
+            SemanticProperties.HeadingLevel="Level1" />
+
+        <Image
+            Grid.Row="2"
+            Margin="0,0,0,40"
+            Source="fens_logo_white_bg.jpg"
+            MaximumWidthRequest="320"
+            Aspect="AspectFit"
+            HorizontalOptions="Center"
+            SemanticProperties.Description="FENS company logo" />
+
+        <VerticalStackLayout
+            Grid.Row="3"
+            Spacing="12"
+            HorizontalOptions="Center">
+            <Picker
+                x:Name="CityPicker"
+                Title="Choose the city you're in"
+                SemanticProperties.Hint="Choose a city"
+                SelectedIndexChanged="OnCityPickerSelectedIndexChanged">
+                <Picker.Items>
+                    <x:String>Vancouver</x:String>
+                    <x:String>Victoria</x:String>
+                    <x:String>Other (Specify)</x:String>
+                </Picker.Items>
+            </Picker>
+
+            <Entry
+                x:Name="OtherCityEntry"
+                IsVisible="False"
+                Placeholder="Enter your city"
+                SemanticProperties.Hint="Specify your city"/>
+
+            <Button
+                x:Name="ConfirmBtn"
+                Text="Confirm"
+                SemanticProperties.Hint="Confirm city selection"
+                Clicked="OnConfirmClicked"
+                BackgroundColor="#3ab54a"
+                TextColor="#000000"/>
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentPage>

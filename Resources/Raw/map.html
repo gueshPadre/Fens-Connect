@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<title>Mapbox MAUI</title>
+
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+<script src='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js'></script>
+
+<link href='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
+
+<style>
+body { margin:0; padding:0; }
+#map { position:absolute; top:0; bottom:0; width:100%; }
+</style>
+</head>
+
+<body>
+
+<div id='map'></div>
+
+<script>
+
+mapboxgl.accessToken = 'pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g';
+
+const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v12'
+});
+
+
+function getBounds(){
+    const bounds = map.getBounds();
+
+    return JSON.stringify({
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+    });
+}
+
+const markerList = [];
+const nameList = [];
+function flyToStartLoc(lng, lat)
+{
+    map.flyTo({
+        center:[lng,lat],
+        speed:50,
+        zoom: 14
+    });
+
+    // Pin where user is
+    new mapboxgl.Marker({
+    color: '#0E4C92'
+    })
+    .setLngLat([lng,lat])
+    .addTo(map);
+}
+    // All businesses that are already in 
+function getPreCookedMarkers(){
+
+    // VCC 
+    const vcc = new mapboxgl.Marker({
+        color: '#3ab54a'
+    })
+        .setLngLat([-123.38619508440203, 48.43005130786145])
+        .addTo(map);
+
+            // Get info of the marker
+    markerList.push(vcc.getLngLat());
+    nameList.push("VCC");
+
+    //------
+
+    // Big Wheel Burger
+    const bwg = new mapboxgl.Marker({
+    color: '#3ab54a'
+    })
+    .setLngLat([-123.38085452996481, 48.432426309628234])
+    .addTo(map);
+
+        // Get info of the marker
+    markerList.push(bwg.getLngLat());
+    nameList.push("Big Wheel Burger");
+
+    //------
+
+    // Vancouver Art Gallery
+    const vag = new mapboxgl.Marker({
+    color: '#3ab54a'
+    })
+    .setLngLat([-123.12060576585512, 49.28302361456653])
+    .addTo(map);
+
+        // Get info of the marker
+    markerList.push(vag.getLngLat());
+    nameList.push("Vancouver Art Gallery");
+
+    //------
+
+    // Hilton Hotel
+    const hil = new mapboxgl.Marker({
+    color: '#3ab54a'
+    })
+    .setLngLat([-123.11700532742789, 49.27995983925699])
+    .addTo(map);
+
+        // Get info of the marker
+    markerList.push(hil.getLngLat());
+    nameList.push("Hilton Hotel");
+
+    //------
+
+    // Social Corner Yaletown
+    const scy = new mapboxgl.Marker({
+    color: '#3ab54a'
+    })
+    .setLngLat([-123.11804358002048, 49.278864165446805])
+    .addTo(map);
+
+        // Get info of the marker
+    markerList.push(scy.getLngLat());
+    nameList.push("Social Corner Yaletown");
+
+}
+
+function getMarkerList()
+{
+    return JSON.stringify(markerList);
+}
+
+function getNameList()
+{
+    return JSON.stringify(nameList);
+}
+
+</script>
+
+</body>
+</html>

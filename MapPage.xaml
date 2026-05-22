@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="FENS_Connect.MapPage"
+             Shell.NavBarIsVisible="False"
+             Title="Map">
+
+    <Grid RowDefinitions="Auto,Auto,*"
+          Padding="10"
+          RowSpacing="30" >
+        <VerticalStackLayout Grid.Row="0" Spacing="15">
+            <Label
+                x:Name="CityTitleLabel"
+                Text="Vancouver"
+                FontSize="40"
+                Style="{StaticResource Headline}" />
+            <Label
+                x:Name="SafePlacesAround"
+                Text="Safety map"
+                FontSize="15"
+                Style="{StaticResource SubHeadline}"/>
+        </VerticalStackLayout>
+        <!-- Map display heigh and width -->
+        <Border
+            x:Name="MapBorder"
+            Grid.Row="1"
+            HeightRequest="250"
+            MinimumHeightRequest="200"
+            MaximumHeightRequest="300"
+            Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+            StrokeThickness="1"
+            StrokeShape="RoundRectangle 12"
+            BackgroundColor="#3ab54a">
+            <WebView
+                x:Name="MapView"
+                HorizontalOptions="Fill"
+                VerticalOptions="Fill"/>
+        </Border>
+
+        <Label
+            x:Name="LoadingText"
+            Grid.Row="1"
+            IsVisible="False"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            TextColor="Black">
+        </Label>
+        <Image
+            Grid.Row="1"
+            TranslationY="50"
+            x:Name="LoadingImage"
+            IsVisible="False"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            HeightRequest="70"
+            Source="proper_logo_transparent.png">
+
+        </Image>
+
+
+        <!-- Four options: icon | text -->
+        <Grid
+            Grid.Row="2"
+            RowDefinitions="Auto,Auto,Auto,Auto"
+            ColumnDefinitions="Auto,*"
+            RowSpacing="40"
+            ColumnSpacing="12">
+            <Image
+                Grid.Row="0"
+                Grid.Column="0"
+                Source="logo_empty_y.png"
+                Aspect="AspectFit"
+                MaximumHeightRequest="50"
+                VerticalOptions="Center"
+                SemanticProperties.Description="check yellow circle" />
+            <Label
+                Grid.Row="0"
+                Grid.Column="1"
+                Text="Turn on I'm Alone mode"
+                FontSize="20"
+                VerticalOptions="Center"
+                Style="{StaticResource SubHeadline}" />
+
+            <Image
+                Grid.Row="1"
+                Grid.Column="0"
+                Source="logo_empty_red.png"
+                Aspect="AspectFit"
+                MaximumHeightRequest="50"
+                VerticalOptions="Center"
+                SemanticProperties.Description="check red circle" />
+            <Label
+                Grid.Row="1"
+                Grid.Column="1"
+                Text="Mark Location as Sketchy"
+                FontSize="20"
+                VerticalOptions="Center"
+                Style="{StaticResource SubHeadline}" />
+
+            <Image
+                Grid.Row="2"
+                Grid.Column="0"
+                Source="logo_empty_blue.png"
+                Aspect="AspectFit"
+                MaximumHeightRequest="50"
+                VerticalOptions="Center"
+                SemanticProperties.Description="check blue circle" />
+            <Label
+                Grid.Row="2"
+                Grid.Column="1"
+                Text="Propose or search for a walking group"
+                FontSize="20"
+                VerticalOptions="Center"
+                Style="{StaticResource SubHeadline}" />
+
+            <Image
+                Grid.Row="3"
+                Grid.Column="0"
+                Source="logo_empty_r.png"
+                Aspect="AspectFit"
+                MaximumHeightRequest="50"
+                VerticalOptions="Center"
+                SemanticProperties.Description="check green circle" />
+            <Label
+                Grid.Row="3"
+                Grid.Column="1"
+                Text="Safe Friends"
+                FontSize="20"
+                VerticalOptions="Center"
+                Style="{StaticResource SubHeadline}" />
+        </Grid>
+    </Grid>
+
+</ContentPage>
