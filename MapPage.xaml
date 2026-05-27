@@ -18,7 +18,45 @@
                 x:Name="SafePlacesAround"
                 Text="Safety map"
                 FontSize="15"
+                IsVisible="False"
                 Style="{StaticResource SubHeadline}"/>
+            <Grid
+            RowSpacing="10"
+            ColumnSpacing="5">
+            <!--ColumnDefinitions="Auto,*-->
+                <Button
+                    Grid.Column="0"
+                    x:Name="GoToClosestLocBtn"
+                    Text="Directions and Info"
+                    FontSize="12"
+                    SemanticProperties.Hint="Gets the location and info"
+                    Clicked="NavigateToClosestLocation"
+                    IsVisible="True"
+                    BackgroundColor="#3ab54a"
+                    WidthRequest="135"
+                    HeightRequest="50"
+                    TextColor="#000000"/>
+                <!--<Border
+                    Grid.Column="1"
+                    x:Name="infoPanelBorder"
+                    HeightRequest="130"
+                    WidthRequest="150"
+                    IsVisible="False"
+                    StrokeShape="RoundRectangle 12"
+                    Stroke="Cyan"
+                    StrokeThickness="5"
+                    BackgroundColor="#4169E1"/>
+                <Label
+                    x:Name="directionsCard"
+                    Grid.Column="1"
+                    Text="info on clicked on business"
+                    FontSize="15"
+                    TextColor="Black"
+                    HorizontalTextAlignment="Center"
+                    VerticalTextAlignment="Center">
+
+                </Label>-->
+            </Grid>
         </VerticalStackLayout>
         <!-- Map display heigh and width -->
         <Border
@@ -63,7 +101,7 @@
             Grid.Row="2"
             RowDefinitions="Auto,Auto,Auto,Auto"
             ColumnDefinitions="Auto,*"
-            RowSpacing="40"
+            RowSpacing="30"
             ColumnSpacing="12">
             <Image
                 Grid.Row="0"

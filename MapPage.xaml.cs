@@ -18,7 +18,7 @@ public partial class MapPage : ContentPage
     string _city = string.Empty;
     List<LocationMarkers> businessDict = new List<LocationMarkers>();
     Location currentLoc;
-
+    LocationMarkers closestLoc;
     public string City
     {
         get => _city;
@@ -80,7 +80,6 @@ public partial class MapPage : ContentPage
 
     async void FetchAllLocations()
     {
-        // TODO: Get the limits (bounds) of the map, then get the closest location within those bounds, and display it on the map
         var pVisibleMarkers = await MapView.EvaluateJavaScriptAsync("getMarkerList()");
         var pNames = await MapView.EvaluateJavaScriptAsync("getNameList()");
 
@@ -147,7 +146,7 @@ public partial class MapPage : ContentPage
             Debug.WriteLine($"Name: {bus.Name}, Lat: {bus.Lat}, Lng: {bus.Lng}");
         
         }
-        await Task.Delay(1000);     // Delay to ensure the map has updated the center before fetching bounds again
+        await Task.Delay(500);     // Delay to ensure the map has updated the center before fetching bounds
         //Get all bounds
         var pBounds = await MapView.EvaluateJavaScriptAsync($"getBounds()");
         double north = 0, south = 0, east = 0, west = 0;
@@ -209,6 +208,25 @@ public partial class MapPage : ContentPage
         {
             Debug.WriteLine($"Visible business: {bus.Name}");
         }
+
+        double pDist = 0;
+        var pClosestBusiness = visibleBusinesses.OrderBy(bus =>
+        {
+            var busLoc = new Location(bus.Lat, bus.Lng);
+            pDist = currentLoc.CalculateDistance(busLoc, DistanceUnits.Kilometers);
+            return pDist;
+        }).FirstOrDefault();
+
+        Debug.WriteLine($"Closest business: {pClosestBusiness?.Name}");
+
+        closestLoc = pClosestBusiness;
+        // Display closest
+        SafePlacesAround.Text = $"You have {visibleBusinesses.Count}  safe places around you." +
+            $" \nThe closest one is {pClosestBusiness?.Name} at {(pDist*1000).ToString("##")} meters or " +
+            $"approximately {((pDist*1000)/ 1.8f /*Average walking speed*/ 
+            / 60 /*to show in minutes*/).ToString("##")} mins";
+        SafePlacesAround.IsVisible = true;
+        GoToClosestLocBtn.IsVisible = true;
     }
 
 
@@ -216,16 +234,16 @@ public partial class MapPage : ContentPage
     async Task GoToLocation()
     {
         // Get my position      // COMMENTED FOR TESTING PURPOSES, UNCOMMENT WHEN TESTING ON DEVICE
-        currentLoc = new Location(49.284502526648104, -123.12503127611855);     // Vancouver's coordinates for testing purposes
-        //var _currentLoc = await Geolocation.GetLocationAsync(
-        //    new GeolocationRequest
-        //    {
-        //        DesiredAccuracy = GeolocationAccuracy.High
-        //    });
-        //if (_currentLoc != null)
-        //{
-        //    currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
-        //}
+        //currentLoc = new Location(49.28037628208823, -123.1233845852417);     // Vancouver's coordinates for testing purposes
+        var _currentLoc = await Geolocation.GetLocationAsync(
+            new GeolocationRequest
+            {
+                DesiredAccuracy = GeolocationAccuracy.High
+            });
+        if (_currentLoc != null)
+        {
+            currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
+        }
 
         double lat;
         double lng;
@@ -262,6 +280,40 @@ public partial class MapPage : ContentPage
         var displayCity = string.IsNullOrWhiteSpace(_city) ? "Your area" : _city;
         CityTitleLabel.Text = displayCity;
         Title = displayCity;
-        SafePlacesAround.Text = $"You have 'xx' safe places around you in {displayCity}. \nThe closest one is at 'xx'm walk";
     }
+
+    /// <summary>
+    /// Draws the route to the closest safe place
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private async void NavigateToClosestLocation(object? sender, EventArgs e)
+    {
+        GoToClosestLocBtn.Text = "Clicked and navigating to location";
+        var pToken = "pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g";
+
+        string url =
+        $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
+        $"{currentLoc.Longitude},{currentLoc.Latitude};{closestLoc.Lng},{closestLoc.Lat}" +
+        $"?geometries=geojson&access_token={pToken}";
+
+        HttpClient client = new();
+
+        string response = await client.GetStringAsync(url);
+
+
+        JsonDocument doc = JsonDocument.Parse(response);
+
+        var geometry =
+            doc.RootElement
+               .GetProperty("routes")[0]
+               .GetProperty("geometry");
+
+        string geoJson = geometry.ToString();
+
+        await MapView.EvaluateJavaScriptAsync($"drawRoute('{geoJson}')");
+    }
+
+
+
 }

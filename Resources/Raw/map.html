@@ -1,142 +1,292 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset='utf-8' />
-<title>Mapbox MAUI</title>
+    <meta charset='utf-8' />
+    <title>Mapbox MAUI</title>
 
-<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 
-<script src='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js'></script>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js'></script>
+    
+    <link href='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
 
-<link href='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
 
-<style>
-body { margin:0; padding:0; }
-#map { position:absolute; top:0; bottom:0; width:100%; }
-</style>
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
 </head>
 
 <body>
 
-<div id='map'></div>
+    <div id='map'></div>
+    <script src="businessesFile.js"></script>
+    <script>
+        //import Business from './businessesFile.js';
 
-<script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g';
 
-mapboxgl.accessToken = 'pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12'
+        });
 
-const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/streets-v12'
-});
+        map.on('load', () => {
+
+            map.addSource('routes', {
+                type: 'geojson',
+                data: {
+                    type: 'FeatureCollection',
+                    features: []
+                }
+            });
+
+            map.addLayer({
+                id: 'routes',
+                type: 'line',
+                source: 'routes',
+                layout: {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                paint: {
+                    'line-color': '#3ab54a',
+                    'line-width': 6
+                }
+            });
+
+        });
 
 
-function getBounds(){
-    const bounds = map.getBounds();
+        function getBounds() {
+            const bounds = map.getBounds();
 
-    return JSON.stringify({
-        north: bounds.getNorth(),
-        south: bounds.getSouth(),
-        east: bounds.getEast(),
-        west: bounds.getWest()
-    });
-}
+            return JSON.stringify({
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest()
+            });
+        }
 
-const markerList = [];
-const nameList = [];
-function flyToStartLoc(lng, lat)
-{
-    map.flyTo({
-        center:[lng,lat],
-        speed:50,
-        zoom: 14
-    });
+        const markerList = [];
+        const nameList = [];
+        function flyToStartLoc(lng, lat) {
+            map.flyTo({
+                center: [lng, lat],
+                speed: 50,
+                zoom: 14
+            });
 
-    // Pin where user is
-    new mapboxgl.Marker({
-    color: '#0E4C92'
-    })
-    .setLngLat([lng,lat])
-    .addTo(map);
-}
-    // All businesses that are already in 
-function getPreCookedMarkers(){
+            // Pin where user is
+            new mapboxgl.Marker({
+                color: '#0E4C92'
+            })
+                .setLngLat([lng, lat])
+                .addTo(map);
 
-    // VCC 
-    const vcc = new mapboxgl.Marker({
-        color: '#3ab54a'
-    })
-        .setLngLat([-123.38619508440203, 48.43005130786145])
-        .addTo(map);
+        }
+        // All businesses that are already in
+        function getPreCookedMarkers() {
 
+            class Business {
+                constructor({ name, safeword, alternativeExit }) {
+                    this.name = name;
+                    this.safeword = safeword;
+                    this.alternativeExit = alternativeExit;
+                }
+                
+            }
+
+
+            // VCC
+            const vcc_b = new Business({
+                name: 'Victoria Canabis Company',
+                safeword: 'bonkers',
+                alternativeExit: 'Yes'
+            });
+
+            const vcc = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vcc_marker.png',
+                -123.38619508440203, 48.43005130786145, vcc_b);
             // Get info of the marker
-    markerList.push(vcc.getLngLat());
-    nameList.push("VCC");
+            markerList.push(vcc.getLngLat());
+            nameList.push(vcc_b.name);
 
-    //------
+            //------
 
-    // Big Wheel Burger
-    const bwg = new mapboxgl.Marker({
-    color: '#3ab54a'
-    })
-    .setLngLat([-123.38085452996481, 48.432426309628234])
-    .addTo(map);
+            // Big Wheel Burger
+            const bwb_b = new Business({
+                name: 'Big Wheel Burger',
+                safeword: 'Duck Burger',
+                alternativeExit: 'Yes'
+            });
+            const bwg = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/bwb_marker.png',
+                -123.38085452996481, 48.432426309628234, bwb_b);
+            // Get info of the marker
+            markerList.push(bwg.getLngLat());
+            nameList.push(bwb_b.name);
 
-        // Get info of the marker
-    markerList.push(bwg.getLngLat());
-    nameList.push("Big Wheel Burger");
+            //------
 
-    //------
+            // Vancouver Art Gallery
+            const vag = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vag_marker.png',
+                -123.12060576585512, 49.28302361456653);
+            // Get info of the marker
+            markerList.push(vag.getLngLat());
+            nameList.push("Vancouver Art Gallery");
 
-    // Vancouver Art Gallery
-    const vag = new mapboxgl.Marker({
-    color: '#3ab54a'
-    })
-    .setLngLat([-123.12060576585512, 49.28302361456653])
-    .addTo(map);
+            //------
 
-        // Get info of the marker
-    markerList.push(vag.getLngLat());
-    nameList.push("Vancouver Art Gallery");
+            // Hilton Hotel
+            const hil = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/hilton_marker.png',
+                -123.11700532742789, 49.27995983925699);
+            // Get info of the marker
+            markerList.push(hil.getLngLat());
+            nameList.push("Hilton Hotel");
 
-    //------
+            //------
 
-    // Hilton Hotel
-    const hil = new mapboxgl.Marker({
-    color: '#3ab54a'
-    })
-    .setLngLat([-123.11700532742789, 49.27995983925699])
-    .addTo(map);
+            // Social Corner Yaletown
+            const scy = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/scy_marker.png',
+                -123.11804358002048, 49.278864165446805);
+            // Get info of the marker
+            markerList.push(scy.getLngLat());
+            nameList.push("Social Corner Yaletown");
 
-        // Get info of the marker
-    markerList.push(hil.getLngLat());
-    nameList.push("Hilton Hotel");
+        }
 
-    //------
+        function createMarker(url, lng, lat, bus) {
 
-    // Social Corner Yaletown
-    const scy = new mapboxgl.Marker({
-    color: '#3ab54a'
-    })
-    .setLngLat([-123.11804358002048, 49.278864165446805])
-    .addTo(map);
+            const img = document.createElement('img');
 
-        // Get info of the marker
-    markerList.push(scy.getLngLat());
-    nameList.push("Social Corner Yaletown");
+            img.src = url;
 
-}
+            img.style.width = '40px';
+            img.style.height = '40px';
+            img.style.borderRadius = '30%';
 
-function getMarkerList()
-{
-    return JSON.stringify(markerList);
-}
+            img.addEventListener('click', () => {
+                ShowBusinessInfo(bus);
 
-function getNameList()
-{
-    return JSON.stringify(nameList);
-}
+            });
 
-</script>
+            const mk = new mapboxgl.Marker(img)
+                .setLngLat([lng, lat])
+                .addTo(map);
+            return mk;
 
+        }
+
+
+
+        function drawRoute(routeGeoJson) {
+            routeGeoJson = JSON.parse(routeGeoJson);
+            map.getSource('routes').setData({
+                type: 'FeatureCollection',
+                features: [
+                    {
+                        type: 'Feature',
+                        properties: {},
+                        geometry: routeGeoJson
+
+                    }
+                ]
+            });
+        }
+
+        function ShowBusinessInfo(business) {
+            const popup = document.createElement('div');
+
+            popup.id = 'popupInfo';
+
+            popup.classList.add('popupInfo');
+
+            popup.innerHTML = "Business Name: <b>" + business.name + "</b><br>Safeword: <b>"
+                + business.safeword + "</b><br>Alternative Exit: <b>" + business.alternativeExit + "</b>" +
+                "<br>Extra Information: ";
+
+            //Close Button
+            const closeButton = document.createElement('button');
+
+            closeButton.innerHTML = '✕';
+
+            closeButton.classList.add('closeButton');
+
+            closeButton.onclick = () => {
+
+                popup.classList.remove('show');
+
+                setTimeout(() => {
+
+                    popup.remove();
+
+                }, 250);
+
+            };
+
+            popup.appendChild(closeButton);
+
+
+            document.body.appendChild(popup);
+
+            setTimeout(() => {
+
+                popup.classList.add('show');
+
+            }, 10);
+        }
+
+
+
+        function getMarkerList() {
+            return JSON.stringify(markerList);
+        }
+
+        function getNameList() {
+            return JSON.stringify(nameList);
+        }
+
+    </script>
+
+    <style>
+        .popupInfo {
+            position: absolute;
+            height: 120px;
+            width: 180px;
+            left: 50%;
+            top: 50%;
+            font-size: 12px;
+            transform: translate(-50%, -50%) scale(0.1);
+            opacity: 0;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            transition: transform 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease-out;
+        }
+
+            .popupInfo.show {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 1;
+            }
+
+        .closeButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border: none;
+            background: transparent;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
 </body>
 </html>
