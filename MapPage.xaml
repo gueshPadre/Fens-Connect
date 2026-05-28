@@ -7,8 +7,8 @@
 
     <Grid RowDefinitions="Auto,Auto,*"
           Padding="10"
-          RowSpacing="30" >
-        <VerticalStackLayout Grid.Row="0" Spacing="15">
+          RowSpacing="15" >
+        <VerticalStackLayout Grid.Row="0" Spacing="5">
             <Label
                 x:Name="CityTitleLabel"
                 Text="Vancouver"
@@ -22,8 +22,9 @@
                 Style="{StaticResource SubHeadline}"/>
             <Grid
             RowSpacing="10"
+            x:Name="FreeRoamGrid"
+            IsVisible="True"
             ColumnSpacing="5">
-            <!--ColumnDefinitions="Auto,*-->
                 <Button
                     Grid.Column="0"
                     x:Name="GoToClosestLocBtn"
@@ -36,26 +37,89 @@
                     WidthRequest="135"
                     HeightRequest="50"
                     TextColor="#000000"/>
-                <!--<Border
+
+            </Grid>
+            <Grid
+                ColumnDefinitions="Auto,*"
+                x:Name="ItineraryGrid"
+                IsVisible="False"
+                RowSpacing="10"
+                ColumnSpacing="5">
+                <Button
+                    Grid.Column="0"
+                    x:Name="ReturnToMap"
+                    Text="Directions and Info"
+                    FontSize="12"
+                    LineBreakMode= "WordWrap"
+                    SemanticProperties.Hint="Go back to map no directions"
+                    Clicked="GoBackFromItinerary"
+                    IsVisible="True"
+                    BackgroundColor="#3ab54a"
+                    WidthRequest="135"
+                    HeightRequest="50"
+                    TextColor="#000000"/>
+                <Border
                     Grid.Column="1"
                     x:Name="infoPanelBorder"
-                    HeightRequest="130"
+                    HeightRequest="100"
                     WidthRequest="150"
-                    IsVisible="False"
+                    IsVisible="True"
                     StrokeShape="RoundRectangle 12"
                     Stroke="Cyan"
-                    StrokeThickness="5"
-                    BackgroundColor="#4169E1"/>
-                <Label
-                    x:Name="directionsCard"
-                    Grid.Column="1"
-                    Text="info on clicked on business"
-                    FontSize="15"
-                    TextColor="Black"
-                    HorizontalTextAlignment="Center"
-                    VerticalTextAlignment="Center">
+                    StrokeThickness="3"
+                    BackgroundColor="#4169E100"
+                    Padding="10">
 
-                </Label>-->
+                    <Grid
+                        RowDefinitions="Auto,*">
+
+                        <Label
+                            Text="BusinessName"
+                            x:Name="DirectionsBusinessName"
+                            IsVisible="False"
+                            FontSize="13"
+                            FontAttributes="Bold"
+                            TextColor="Black"
+                            HorizontalTextAlignment="Center"/>
+                        <CollectionView
+                            Grid.Row="1"
+                            ItemsSource="{Binding RouteSteps}"
+                            VerticalScrollBarVisibility="Always">
+
+                            <CollectionView.ItemTemplate>
+
+                                <DataTemplate>
+
+                                    <VerticalStackLayout
+                                    Padding="5"
+                                    Spacing="2">
+
+                                        <Label
+                                        Text="{Binding Instruction}"
+                                        FontSize="13"
+                                        TextColor="Black"
+                                        LineBreakMode="WordWrap"/>
+
+                                        <Label
+                                        Text="{Binding Distance}"
+                                        FontSize="12"
+                                        TextColor="Black"/>
+
+                                        <BoxView
+                                        HeightRequest="1"
+                                        BackgroundColor="Black"
+                                        Margin="0,5"/>
+
+                                    </VerticalStackLayout>
+
+                                </DataTemplate>
+
+                            </CollectionView.ItemTemplate>
+
+                        </CollectionView>
+
+                    </Grid>
+                </Border>
             </Grid>
         </VerticalStackLayout>
         <!-- Map display heigh and width -->
@@ -101,7 +165,7 @@
             Grid.Row="2"
             RowDefinitions="Auto,Auto,Auto,Auto"
             ColumnDefinitions="Auto,*"
-            RowSpacing="30"
+            RowSpacing="20"
             ColumnSpacing="12">
             <Image
                 Grid.Row="0"

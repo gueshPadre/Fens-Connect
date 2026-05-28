@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Collections.ObjectModel;
 
 namespace FENS_Connect;
 
@@ -14,7 +15,13 @@ public partial class MapPage : ContentPage
         public double Lat { get; set; }
     }
 
+    public class RouteStep
+    {
+        public string Instruction { get; set; } = string.Empty;
+        public string Distance { get; set; } = string.Empty;
+    }
 
+    public ObservableCollection<RouteStep> RouteSteps { get; set; } = new ObservableCollection<RouteStep>();
     string _city = string.Empty;
     List<LocationMarkers> businessDict = new List<LocationMarkers>();
     Location currentLoc;
@@ -32,6 +39,7 @@ public partial class MapPage : ContentPage
     public MapPage()
     {
         InitializeComponent();
+        BindingContext = this;
 
         // HTML maps integration
         LoadingMap();
@@ -144,7 +152,7 @@ public partial class MapPage : ContentPage
         foreach (var bus in businessDict)
         {
             Debug.WriteLine($"Name: {bus.Name}, Lat: {bus.Lat}, Lng: {bus.Lng}");
-        
+
         }
         await Task.Delay(500);     // Delay to ensure the map has updated the center before fetching bounds
         //Get all bounds
@@ -222,8 +230,8 @@ public partial class MapPage : ContentPage
         closestLoc = pClosestBusiness;
         // Display closest
         SafePlacesAround.Text = $"You have {visibleBusinesses.Count}  safe places around you." +
-            $" \nThe closest one is {pClosestBusiness?.Name} at {(pDist*1000).ToString("##")} meters or " +
-            $"approximately {((pDist*1000)/ 1.8f /*Average walking speed*/ 
+            $" \nThe closest one is {pClosestBusiness?.Name} at {(pDist * 1000).ToString("##")} meters or " +
+            $"approximately {((pDist * 1000) / 1.8f /*Average walking speed*/
             / 60 /*to show in minutes*/).ToString("##")} mins";
         SafePlacesAround.IsVisible = true;
         GoToClosestLocBtn.IsVisible = true;
@@ -234,16 +242,16 @@ public partial class MapPage : ContentPage
     async Task GoToLocation()
     {
         // Get my position      // COMMENTED FOR TESTING PURPOSES, UNCOMMENT WHEN TESTING ON DEVICE
-        //currentLoc = new Location(49.28037628208823, -123.1233845852417);     // Vancouver's coordinates for testing purposes
-        var _currentLoc = await Geolocation.GetLocationAsync(
-            new GeolocationRequest
-            {
-                DesiredAccuracy = GeolocationAccuracy.High
-            });
-        if (_currentLoc != null)
-        {
-            currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
-        }
+        currentLoc = new Location(48.43504263471127, -123.38340292748556);     // Vancouver's coordinates for testing purposes
+        //var _currentLoc = await Geolocation.GetLocationAsync(
+        //    new GeolocationRequest
+        //    {
+        //        DesiredAccuracy = GeolocationAccuracy.High
+        //    });
+        //if (_currentLoc != null)
+        //{
+        //    currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
+        //}
 
         double lat;
         double lng;
@@ -289,13 +297,16 @@ public partial class MapPage : ContentPage
     /// <param name="e"></param>
     private async void NavigateToClosestLocation(object? sender, EventArgs e)
     {
-        GoToClosestLocBtn.Text = "Clicked and navigating to location";
+        FreeRoamGrid.IsVisible = false;
+        ItineraryGrid.IsVisible = true;
+        ReturnToMap.Text = $"Return from directions";
+
         var pToken = "pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g";
 
         string url =
         $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
         $"{currentLoc.Longitude},{currentLoc.Latitude};{closestLoc.Lng},{closestLoc.Lat}" +
-        $"?geometries=geojson&access_token={pToken}";
+        $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={pToken}";
 
         HttpClient client = new();
 
@@ -309,11 +320,37 @@ public partial class MapPage : ContentPage
                .GetProperty("routes")[0]
                .GetProperty("geometry");
 
+        var steps = doc.RootElement
+            .GetProperty("routes")[0]
+            .GetProperty("legs")[0]
+            .GetProperty("steps");
+
+        int i = 0;
+        foreach (var step in steps.EnumerateArray())
+        {
+            bool isLastOne = i >= steps.EnumerateArray().Count()-1;
+            var instructions = step.GetProperty("maneuver").GetProperty("instruction");
+
+            double distance = step.GetProperty("distance").GetDouble();
+
+            RouteSteps.Add(new RouteStep
+            {
+                Instruction = instructions.ToString(),
+                Distance = isLastOne ? $"{distance.ToString("##")}": $"{distance.ToString("##")}m"
+            });
+            i++;        // Iterate through the steps
+        }
+        DirectionsBusinessName.Text = closestLoc.Name;
+        DirectionsBusinessName.IsVisible = true;
+
         string geoJson = geometry.ToString();
 
         await MapView.EvaluateJavaScriptAsync($"drawRoute('{geoJson}')");
     }
 
-
+    private async void GoBackFromItinerary(object? sender, EventArgs e)
+    {
+        Debug.WriteLine("Clicked to go back from itinerary");
+    }
 
 }
