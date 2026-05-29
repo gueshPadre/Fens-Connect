@@ -7,7 +7,7 @@
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 
     <script src='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js'></script>
-    
+
     <link href='https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css' rel='stylesheet' />
 
     <style>
@@ -66,6 +66,7 @@
         });
 
 
+
         function getBounds() {
             const bounds = map.getBounds();
 
@@ -103,7 +104,7 @@
                     this.safeword = safeword;
                     this.alternativeExit = alternativeExit;
                 }
-                
+
             }
 
 
@@ -202,6 +203,14 @@
             });
         }
 
+        function clearRoute() {
+            map.getSource('routes').setData({
+                type: 'FeatureCollection',
+                features: []
+            });
+        }
+
+
         function ShowBusinessInfo(business) {
             const popup = document.createElement('div');
 
@@ -210,8 +219,7 @@
             popup.classList.add('popupInfo');
 
             popup.innerHTML = "Business Name: <b>" + business.name + "</b><br>Safeword: <b>"
-                + business.safeword + "</b><br>Alternative Exit: <b>" + business.alternativeExit + "</b>" +
-                "<br>Extra Information: ";
+                + business.safeword + "</b><br>Alternative Exit: <b>" + business.alternativeExit + "</b>";
 
             //Close Button
             const closeButton = document.createElement('button');
@@ -232,6 +240,23 @@
 
             };
 
+            // Directions Button
+            const directionsButton = document.createElement('button');
+
+            directionsButton.id = 'directionsButton';
+            directionsButton.innerHTML = 'Get to ' + business.name;
+
+            directionsButton.classList.add('directionsButton');
+
+            directionsButton.onclick = () => {
+                window.location.href =
+                    'app://getDirections?businessName=' +
+                    encodeURIComponent(business.name);
+            };
+
+
+            popup.appendChild(directionsButton);
+
             popup.appendChild(closeButton);
 
 
@@ -244,6 +269,16 @@
             }, 10);
         }
 
+        function closePopup() {
+            const popupButton = document.getElementById('popupInfo');
+            popupButton.classList.remove('show');
+
+            setTimeout(() => {
+
+                popupButton.remove();
+
+            }, 250);
+        }
 
 
         function getMarkerList() {
@@ -263,7 +298,7 @@
             align-items: center;
             justify-content: center;
             position: absolute;
-            line-height:10px;
+            line-height: 10px;
             height: 120px;
             width: 180px;
             left: 50%;
@@ -291,6 +326,20 @@
             background: transparent;
             font-size: 20px;
             cursor: pointer;
+        }
+
+
+        .directionsButton {
+            position: center;
+            bottom: 15px;
+            margin: 5px 5px;
+            background-color: #3ab54a;
+            border: none;
+            font-size: 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            width:160px;
+            height:40px;
         }
     </style>
 </body>

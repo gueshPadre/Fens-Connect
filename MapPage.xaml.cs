@@ -1,6 +1,6 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text.Json;
-using System.Collections.ObjectModel;
 
 namespace FENS_Connect;
 
@@ -20,6 +20,8 @@ public partial class MapPage : ContentPage
         public string Instruction { get; set; } = string.Empty;
         public string Distance { get; set; } = string.Empty;
     }
+    // TODO: Hide the token key in production, this is just for testing purposes
+    string Token = "pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g";
 
     public ObservableCollection<RouteStep> RouteSteps { get; set; } = new ObservableCollection<RouteStep>();
     string _city = string.Empty;
@@ -56,6 +58,25 @@ public partial class MapPage : ContentPage
         LoadingText.Text = "Map is loading...";
         LoadingImage.IsVisible = true;
 
+    }
+
+    private async void OnWebViewNavigating(object? sender, WebNavigatingEventArgs e)
+    {
+        if (e.Url.StartsWith("app://"))
+        {
+            e.Cancel = true; // Cancel the navigation to prevent loading an invalid URL
+
+            if (e.Url.Contains("getdirections"))
+            {
+                var pUri = new Uri(e.Url);
+                var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
+                string businessName = query["businessName"];
+                //Get the proper business from the name
+                var pBus = businessDict.FirstOrDefault(b => b.Name == businessName);
+
+                GetDirectionsToBusiness(pBus);
+            }
+        }
     }
 
     /// <summary>
@@ -242,16 +263,16 @@ public partial class MapPage : ContentPage
     async Task GoToLocation()
     {
         // Get my position      // COMMENTED FOR TESTING PURPOSES, UNCOMMENT WHEN TESTING ON DEVICE
-        currentLoc = new Location(48.43504263471127, -123.38340292748556);     // Vancouver's coordinates for testing purposes
-        //var _currentLoc = await Geolocation.GetLocationAsync(
-        //    new GeolocationRequest
-        //    {
-        //        DesiredAccuracy = GeolocationAccuracy.High
-        //    });
-        //if (_currentLoc != null)
-        //{
-        //    currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
-        //}
+        //currentLoc = new Location(48.43114761028363, -123.39322136294639);     // Vancouver's coordinates for testing purposes
+        var _currentLoc = await Geolocation.GetLocationAsync(
+            new GeolocationRequest
+            {
+                DesiredAccuracy = GeolocationAccuracy.High
+            });
+        if (_currentLoc != null)
+        {
+            currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
+        }
 
         double lat;
         double lng;
@@ -297,17 +318,25 @@ public partial class MapPage : ContentPage
     /// <param name="e"></param>
     private async void NavigateToClosestLocation(object? sender, EventArgs e)
     {
-        FreeRoamGrid.IsVisible = false;
-        ItineraryGrid.IsVisible = true;
-        ReturnToMap.Text = $"Return from directions";
-
-        var pToken = "pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g";
 
         string url =
         $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
         $"{currentLoc.Longitude},{currentLoc.Latitude};{closestLoc.Lng},{closestLoc.Lat}" +
-        $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={pToken}";
+        $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
 
+        GetDirections(url, closestLoc.Name);
+    }
+
+
+    /// <summary>
+    /// Get the directions to the location described in the url and draw the route on the map, 
+    /// also get the steps and display them in the itinerary
+    /// </summary>
+    /// <param name="url">URL containing the parameters of the itinerary</param>
+    async void GetDirections(string url, string _busName)
+    {
+        FreeRoamGrid.IsVisible = false;
+        ItineraryGrid.IsVisible = true;
         HttpClient client = new();
 
         string response = await client.GetStringAsync(url);
@@ -325,10 +354,11 @@ public partial class MapPage : ContentPage
             .GetProperty("legs")[0]
             .GetProperty("steps");
 
+        RouteSteps.Clear();         // Clear the route in case it's not yet
         int i = 0;
         foreach (var step in steps.EnumerateArray())
         {
-            bool isLastOne = i >= steps.EnumerateArray().Count()-1;
+            bool isLastOne = i >= steps.EnumerateArray().Count() - 1;
             var instructions = step.GetProperty("maneuver").GetProperty("instruction");
 
             double distance = step.GetProperty("distance").GetDouble();
@@ -336,11 +366,11 @@ public partial class MapPage : ContentPage
             RouteSteps.Add(new RouteStep
             {
                 Instruction = instructions.ToString(),
-                Distance = isLastOne ? $"{distance.ToString("##")}": $"{distance.ToString("##")}m"
+                Distance = isLastOne ? $"{distance.ToString("##")}" : $"{distance.ToString("##")}m"
             });
             i++;        // Iterate through the steps
         }
-        DirectionsBusinessName.Text = closestLoc.Name;
+        DirectionsBusinessName.Text = _busName;
         DirectionsBusinessName.IsVisible = true;
 
         string geoJson = geometry.ToString();
@@ -348,9 +378,32 @@ public partial class MapPage : ContentPage
         await MapView.EvaluateJavaScriptAsync($"drawRoute('{geoJson}')");
     }
 
+
     private async void GoBackFromItinerary(object? sender, EventArgs e)
     {
-        Debug.WriteLine("Clicked to go back from itinerary");
+        FreeRoamGrid.IsVisible = true;
+        ItineraryGrid.IsVisible = false;
+
+        //Empty the route steps
+        RouteSteps.Clear();
+
+        await MapView.EvaluateJavaScriptAsync($"clearRoute()");
     }
+
+    public async Task GetDirectionsToBusiness(LocationMarkers _busName)
+    {
+        //Navigate to that business location and show the itinerary
+
+        string url =
+        $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
+        $"{currentLoc.Longitude},{currentLoc.Latitude};{_busName.Lng},{_busName.Lat}" +
+        $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
+        
+        GetDirections(url, _busName.Name);
+
+        //Close popup
+        await MapView.EvaluateJavaScriptAsync($"closePopup()");
+    }
+
 
 }
