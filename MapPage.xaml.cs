@@ -324,6 +324,9 @@ public partial class MapPage : ContentPage
         $"{currentLoc.Longitude},{currentLoc.Latitude};{closestLoc.Lng},{closestLoc.Lat}" +
         $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
 
+        //await MapView.EvaluateJavaScriptAsync("ShowBusinessInfo('{test, test safeword, testExit}', 'true')");
+        await MapView.EvaluateJavaScriptAsync($"ShowBusinessInfo('', true, '{closestLoc.Name}')");    // Later change to ID instead of name
+
         GetDirections(url, closestLoc.Name);
     }
 
@@ -402,7 +405,7 @@ public partial class MapPage : ContentPage
         GetDirections(url, _busName.Name);
 
         //Close popup
-        await MapView.EvaluateJavaScriptAsync($"closePopup()");
+        await MapView.EvaluateJavaScriptAsync($"changeToMinimized()");      // minimize the popup
     }
 
 

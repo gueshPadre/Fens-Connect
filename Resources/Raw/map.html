@@ -80,6 +80,7 @@
 
         const markerList = [];
         const nameList = [];
+        const businessList = [];
         function flyToStartLoc(lng, lat) {
             map.flyTo({
                 center: [lng, lat],
@@ -110,7 +111,7 @@
 
             // VCC
             const vcc_b = new Business({
-                name: 'Victoria Canabis Company',
+                name: 'Victoria Cannabis Company',
                 safeword: 'bonkers',
                 alternativeExit: 'Yes'
             });
@@ -174,6 +175,8 @@
             img.style.height = '40px';
             img.style.borderRadius = '30%';
 
+            // Add to list (dictionnary)
+            businessList.push(bus);
             img.addEventListener('click', () => {
                 ShowBusinessInfo(bus);
 
@@ -208,10 +211,22 @@
                 type: 'FeatureCollection',
                 features: []
             });
+
+            const popupButton = document.getElementById('popupInfo');
+            if (popupButton != null) {
+                popupButton.remove();
+            }
+
         }
 
-
-        function ShowBusinessInfo(business) {
+        function ShowBusinessInfo(business, isOnTimeout, busName) {
+            if (isOnTimeout) {  // gotta get the business info from name list and marker list
+                //alert("passed business name: " + busName);
+                business = businessList.find(bus => bus.name === busName);
+                if (typeof business === 'undefined' || !business) {
+                    alert("Error: No Business were found!");
+                }
+            }
             const popup = document.createElement('div');
 
             popup.id = 'popupInfo';
@@ -224,6 +239,7 @@
             //Close Button
             const closeButton = document.createElement('button');
 
+            closeButton.id = 'closeButton';
             closeButton.innerHTML = '✕';
 
             closeButton.classList.add('closeButton');
@@ -240,34 +256,108 @@
 
             };
 
-            // Directions Button
-            const directionsButton = document.createElement('button');
+            if (isOnTimeout == true) {
+                // Temporary show the info then reduce
+                popup.appendChild(closeButton);
 
-            directionsButton.id = 'directionsButton';
-            directionsButton.innerHTML = 'Get to ' + business.name;
 
-            directionsButton.classList.add('directionsButton');
+                document.body.appendChild(popup);
 
-            directionsButton.onclick = () => {
-                window.location.href =
-                    'app://getDirections?businessName=' +
-                    encodeURIComponent(business.name);
+                setTimeout(() => {
+
+                    popup.classList.add('show');
+
+                }, 10);
+                setTimeout(() => {
+                    popup.classList.remove('show');
+                    changeToMinimized();
+                    //popup.remove();         // later to be 'REDUCED'
+                }, 2500);
+            }
+
+
+            if (isOnTimeout != true) {
+
+
+                // Directions Button
+                const directionsButton = document.createElement('button');
+
+                directionsButton.id = 'directionsButton';
+                directionsButton.innerHTML = 'Get to ' + business.name;
+
+                directionsButton.classList.add('directionsButton');
+
+                directionsButton.onclick = () => {
+                    window.location.href =
+                        'app://getDirections?businessName=' +
+                        encodeURIComponent(business.name);
+                };
+
+
+                popup.appendChild(directionsButton);
+
+                popup.appendChild(closeButton);
+
+
+                document.body.appendChild(popup);
+
+                setTimeout(() => {
+
+                    popup.classList.add('show');
+
+                }, 10);
+            }
+        }
+
+        function changeToMinimized() {
+            const popupButton = document.getElementById('popupInfo');
+            popupButton.classList.add('minimized');
+            popupInfo = popupButton.innerHTML;      // Store the info before minimizing
+            popupButton.innerHTML = "";
+
+            //disable the x
+            // const closeButton = document.getElementById('closeButton');
+            // closeButton.classList.remove('closeButton');
+            // closeButton.innerHTML = '';
+            // closeButton.removeAttribute('onclick');
+
+            const maximizeButton = document.createElement('button');
+            maximizeButton.id = 'maximizeButton';
+            maximizeButton.classList.add('maximizeButton');
+
+            popupButton.appendChild(maximizeButton);
+            //Activate the click to maximize
+            maximizeButton.onclick = () => {
+                popupButton.classList.remove('minimized');
+                popupButton.innerHTML = popupInfo;      // Restore the info when maximizing
+                popupButton.classList.add('show');
+
+                //remove directions Button if there's one
+                const dirButton = document.getElementById('directionsButton');
+                if (dirButton != null) {
+                    dirButton.remove();
+                }
+
+                closeButton.classList.add('closeButton');
+                closeButton.innerHTML = '✕';
+                closeButton.onclick = () => {
+                    popupButton.classList.remove('show');
+                    setTimeout(() => {
+                        popupButton.remove();
+                    }, 250);
+                };
+                // Reduce again after 3 seconds
+                setTimeout(() => {
+                    popupButton.classList.remove('show');
+                    popupButton.classList.add('minimized');
+                    changeToMinimized();
+                }, 3000);
+
             };
 
-
-            popup.appendChild(directionsButton);
-
-            popup.appendChild(closeButton);
-
-
-            document.body.appendChild(popup);
-
-            setTimeout(() => {
-
-                popup.classList.add('show');
-
-            }, 10);
         }
+
+
 
         function closePopup() {
             const popupButton = document.getElementById('popupInfo');
@@ -310,12 +400,24 @@
             padding: 20px;
             border-radius: 20px;
             box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            transition: transform 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease-out;
+            transition: transform 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.7s ease-out;
         }
 
             .popupInfo.show {
                 transform: translate(-50%, -50%) scale(1.3);
                 opacity: 1;
+            }
+
+            .popupInfo.minimized {
+                /*transform: translate(-200px, -150px) scale(0.3);*/
+                transform: translate(-160%, -160%) scale(0.3);
+                opacity: 1;
+                border-radius: 50px;
+                color: #FFA500;
+                background-color: #FFA500;
+                width: 90px;
+                height: 40px;
+                transition: all 1.5s ease;
             }
 
         .closeButton {
@@ -338,8 +440,17 @@
             font-size: 10px;
             border-radius: 15px;
             cursor: pointer;
-            width:160px;
-            height:40px;
+            width: 160px;
+            height: 40px;
+        }
+
+        .maximizeButton {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            border-radius: 50px;
+            background-color: transparent;
         }
     </style>
 </body>
