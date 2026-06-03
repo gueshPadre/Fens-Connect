@@ -9,11 +9,30 @@
           Padding="10"
           RowSpacing="15" >
         <VerticalStackLayout Grid.Row="0" Spacing="5">
+            <HorizontalStackLayout Spacing="20">
             <Label
+                
                 x:Name="CityTitleLabel"
+                HorizontalTextAlignment="Center"
+                Margin="80, 0,0,0 "
                 Text="Vancouver"
                 FontSize="40"
                 Style="{StaticResource Headline}" />
+            <Button
+                x:Name="SafePlaceListBtn"
+                Text="Show List"
+                Clicked="ShowBusinessList"
+                FontAttributes="Bold"
+                FontSize="8"
+                BackgroundColor="#3ab54a"
+                WidthRequest="50"
+                MinimumWidthRequest="0"
+                MinimumHeightRequest="0"
+                Padding="0"
+                HeightRequest="25"
+                TextColor="Black"
+                Margin="10,0,0,0"/>
+            </HorizontalStackLayout>
             <Label
                 x:Name="SafePlacesAround"
                 Text="Safety map"

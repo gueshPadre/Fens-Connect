@@ -408,5 +408,10 @@ public partial class MapPage : ContentPage
         await MapView.EvaluateJavaScriptAsync($"changeToMinimized()");      // minimize the popup
     }
 
+    // Triggered when clicked on the top right button to show the full list of businesses
+    private async void ShowBusinessList(object? sender, EventArgs a)
+    {
+        await MapView.EvaluateJavaScriptAsync($"displayFullList()");
+    }
 
 }
