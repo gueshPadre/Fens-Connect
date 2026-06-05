@@ -100,12 +100,17 @@
         function getPreCookedMarkers() {
 
             class Business {
-                constructor({ name, safeword, alternativeExit }) {
+                constructor({ name, safeword, alternativeExit, imgSrc }) {
                     this.name = name;
                     this.safeword = safeword;
                     this.alternativeExit = alternativeExit;
+                    this.imgSrc = imgSrc;
                 }
-
+                // distance to current location
+                setDist(dist) {
+                    this.dist = dist;
+                }
+                
             }
 
 
@@ -113,10 +118,11 @@
             const vcc_b = new Business({
                 name: 'Victoria Cannabis Company',
                 safeword: 'bonkers',
-                alternativeExit: 'Yes'
+                alternativeExit: 'Yes',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vcc_marker1.png'
             });
 
-            const vcc = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vcc_marker.png',
+            const vcc = createMarker(vcc_b.imgSrc,
                 -123.38619508440203, 48.43005130786145, vcc_b);
             // Get info of the marker
             markerList.push(vcc.getLngLat());
@@ -128,9 +134,10 @@
             const bwb_b = new Business({
                 name: 'Big Wheel Burger',
                 safeword: 'Duck Burger',
-                alternativeExit: 'Yes'
+                alternativeExit: 'Yes',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/bwb_marker1.png'
             });
-            const bwg = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/bwb_marker.png',
+            const bwg = createMarker(bwb_b.imgSrc,
                 -123.38085452996481, 48.432426309628234, bwb_b);
             // Get info of the marker
             markerList.push(bwg.getLngLat());
@@ -139,50 +146,79 @@
             //------
 
             // Vancouver Art Gallery
-            const vag = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vag_marker.png',
-                -123.12060576585512, 49.28302361456653);
+            const vag_b = new Business({
+                name: 'Vancouver Art Gallery',
+                safeword: '',
+                alternativeExit: '',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vag_marker1.png'
+            });
+            const vag = createMarker(vag_b.imgSrc,
+                -123.12060576585512, 49.28302361456653, vag_b);
             // Get info of the marker
             markerList.push(vag.getLngLat());
-            nameList.push("Vancouver Art Gallery");
+            nameList.push(vag_b.name);
 
             //------
 
             // Hilton Hotel
-            const hil = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/hilton_marker.png',
-                -123.11700532742789, 49.27995983925699);
+            const hil_b = new Business({
+                name: 'Hilton Hotel',
+                safeword: '',
+                alternativeExit: '',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/hilton_marker1.png'
+            });
+            const hil = createMarker(hil_b.imgSrc,
+                -123.11700532742789, 49.27995983925699, hil_b);
             // Get info of the marker
             markerList.push(hil.getLngLat());
-            nameList.push("Hilton Hotel");
+            nameList.push(hil_b.name);
 
             //------
 
             // Social Corner Yaletown
-            const scy = createMarker('https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/scy_marker.png',
-                -123.11804358002048, 49.278864165446805);
+            const scy_b = new Business({
+                name: 'Social Corner Yaletown',
+                safeword: '',
+                alternativeExit: '',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/scy_marker1.png'
+            });
+            const scy = createMarker(scy_b.imgSrc,
+                -123.11804358002048, 49.278864165446805, scy_b);
             // Get info of the marker
             markerList.push(scy.getLngLat());
-            nameList.push("Social Corner Yaletown");
+            nameList.push(scy_b.name);
 
         }
 
         function createMarker(url, lng, lat, bus) {
 
-            const img = document.createElement('img');
+            const markerAnchor = document.createElement('div');
+            markerAnchor.className = 'marker-anchor';
 
-            img.src = url;
+            const markerPin = document.createElement('div');
+            markerPin.className = 'marker-pin';
 
-            img.style.width = '40px';
-            img.style.height = '40px';
-            img.style.borderRadius = '30%';
+            const logoImg = document.createElement('img');
+            logoImg.className = 'marker-logo';
+            logoImg.src = url;
+            logoImg.alt = bus && bus.name ? `${bus.name} marker` : 'Business marker';
 
+            const arrowImg = document.createElement('img');
+            arrowImg.className = 'marker-arrow';
+            arrowImg.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/markerArrow.png';
+            arrowImg.alt = '';
+
+            markerPin.appendChild(logoImg);
+            markerPin.appendChild(arrowImg);
+            markerAnchor.appendChild(markerPin);
             // Add to list (dictionnary)
             businessList.push(bus);
-            img.addEventListener('click', () => {
+            markerAnchor.addEventListener('click', () => {
                 ShowBusinessInfo(bus);
 
             });
 
-            const mk = new mapboxgl.Marker(img)
+            const mk = new mapboxgl.Marker({ element: markerAnchor, anchor: 'center', offset: [0, 0] })
                 .setLngLat([lng, lat])
                 .addTo(map);
             return mk;
@@ -240,7 +276,7 @@
             const closeButton = document.createElement('button');
 
             closeButton.id = 'closeButton';
-            closeButton.innerHTML = '✕';
+            closeButton.innerHTML = 'x';
 
             closeButton.classList.add('closeButton');
 
@@ -333,7 +369,7 @@
                 }
 
                 closeButton.classList.add('closeButton');
-                closeButton.innerHTML = '✕';
+                closeButton.innerHTML = 'x';
                 closeButton.onclick = () => {
                     popupButton.classList.remove('show');
                     setTimeout(() => {
@@ -351,8 +387,6 @@
 
         }
 
-
-
         function closePopup() {
             const popupButton = document.getElementById('popupInfo');
             popupButton.classList.remove('show');
@@ -364,29 +398,72 @@
             }, 250);
         }
 
+        function getDistanceToBusiness(busName, dist) {
+            const bus = businessList.find(b => b.name === busName);
+            if (!bus) {
+                return null;
+            }
+            bus.setDist(dist);
+        }
+
+
         function displayFullList() {
+            if (document.getElementById('busList') !== null) { return; }
             const busList = document.createElement('div');
 
             busList.id = 'busList';
 
             busList.classList.add('busList');
 
-            const sb = [];
             for (const bus of businessList) {
-                if (bus && bus.name) {
-                    sb.push(`<div class ="bus-item">${bus.name}</div>`);
+                if (bus && bus.name && bus.imgSrc) {
+                    const busLine = document.createElement('div');
+                    busLine.className = 'bus-item';
+
+                    const img = document.createElement('img');
+                    img.className = 'bus-logo';
+                    img.src = bus.imgSrc;
+                    img.alt = `${bus.name} logo`;
+
+                    img.addEventListener('click', () => {
+                        ShowBusinessInfo(bus);
+
+                        busList.classList.remove('show');
+
+                        setTimeout(() => {
+
+                            busList.remove();
+
+                        }, 250);
+                    });
+
+                    const name = document.createElement('span');
+                    name.className = 'bus-name';
+                    name.textContent = bus.name;
+
+                    const dist = document.createElement('div');
+                    dist.className = 'bus-dist';
+                    dist.textContent = bus.dist + ' km';
+
+                    const lineImg = document.createElement('img');
+                    lineImg.className = 'bus-line';
+                    lineImg.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/Line.png';
+
+                    busLine.appendChild(img);
+                    busLine.appendChild(name);
+                    name.appendChild(dist);
+                    dist.appendChild(lineImg);
+                    busList.appendChild(busLine);
                 }
             }
-            const res = sb.join('');
 
-            busList.innerHTML = res;
             document.body.appendChild(busList);
             busList.classList.add('show');
 
             const closeButton = document.createElement('button');
 
             closeButton.id = 'closeButton';
-            closeButton.innerHTML = '✕';
+            closeButton.innerHTML = 'x';
 
             closeButton.classList.add('closeButton');
 
@@ -489,34 +566,122 @@
             background-color: transparent;
         }
 
+        .marker-anchor {
+            position: relative;
+            width: 0;
+            height: 0;
+            cursor: pointer;
+        }
+
+        .marker-pin {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            transform: translateX(-50%);
+            display: block;
+            width: 40px;
+            height: 37px;
+            overflow: visible;
+        }
+
+            .marker-pin .marker-logo {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                width: 40px;
+                height: 25px;
+                border-radius: 10%;
+                object-fit: cover;
+                transform: translateX(-50%);
+            }
+
+            .marker-pin .marker-arrow {
+                position: absolute;
+                left: 50%;
+                bottom: 0;
+                width: 12px;
+                height: 12px;
+                border-radius: 0;
+                transform: translateX(-50%);
+                animation: markerArrowBob 1.1s ease-in-out infinite alternate;
+            }
+
+        @keyframes markerArrowBob {
+            from {
+                transform: translateX(-50%) translateY(0);
+            }
+
+            to {
+                transform: translateX(-50%) translateY(-5px);
+            }
+        }
+
         .busList {
             display: flex;
             flex-direction: column;
-            align-items: start;
-            white-space: wrap;
-            justify-content: center;
+            align-items: stretch;
+            gap: 8px;
+            justify-content: flex-start;
             position: absolute;
+            max-height: 60vh;
+            width: 100px;
             height: 120px;
-            width: 70px;
-            left: 80%;
+            right: 35px;
             top: 50%;
             font-size: 8px;
-            transform: translate(-50%, -50%) scale(0.1);
+            transform: translateY(-50%) scale(0.1);
             opacity: 0;
             background: white;
-            padding: 5px;
+            padding: 30px 8px 8px;
             border-radius: 5px;
             box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            overflow-y: auto;
             transition: transform 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.7s ease-out;
         }
 
             .busList .bus-item {
-                line-height: 10px;
-                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                min-height: 20px;
+                line-height: 15px;
+            }
+
+            .busList .bus-logo {
+                width: 16px;
+                height: 16px;
+                border-radius: 4px;
+                flex: 0 0 32px;
+                object-fit: cover;
+            }
+
+            .busList .bus-name {
+                color: #111;
+                flex: 2;
+                font-size: 6px;
+                line-height: 8px;
+            }
+
+            .busList .bus-dist {
+                flex:2;
+                color: #FF0000;
+                font-size: 6px;
+                line-height: 8px;
+
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+            }
+
+            .busList .bus-line {
+                width: 25px;
+                height: 1px;
+                border-radius: 0px;
+                margin-top: 2px;
             }
 
             .busList.show {
-                transform: translate(-50%, -50%) scale(1.3);
+                transform: translateY(-50%) scale(1.3);
                 opacity: 1;
             }
     </style>

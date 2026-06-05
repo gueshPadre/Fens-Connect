@@ -6,17 +6,19 @@
 
     <Grid RowDefinitions="*,Auto,Auto,Auto,*"
           RowSpacing="25"
-          Padding="30,0">
+          Padding="20,0"
+          BackgroundColor="#06170a">
         <Label
             Grid.Row="1"
+            TextColor="#fff0ff"
             Text="Welcome to your all-in-one safety app"
             Style="{StaticResource WelcomeTitle}"
             SemanticProperties.HeadingLevel="Level1" />
 
         <Image
             Grid.Row="2"
-            Margin="0,0,0,40"
-            Source="fens_logo_white_bg.jpg"
+            Margin="0,0,0,10"
+            Source="mappfenslogo_transparency.png"
             MaximumWidthRequest="320"
             Aspect="AspectFit"
             HorizontalOptions="Center"
@@ -26,31 +28,31 @@
             Grid.Row="3"
             Spacing="12"
             HorizontalOptions="Center">
-            <Picker
-                x:Name="CityPicker"
-                Title="Choose the city you're in"
-                SemanticProperties.Hint="Choose a city"
-                SelectedIndexChanged="OnCityPickerSelectedIndexChanged">
-                <Picker.Items>
-                    <x:String>Vancouver</x:String>
-                    <x:String>Victoria</x:String>
-                    <x:String>Other (Specify)</x:String>
-                </Picker.Items>
-            </Picker>
 
-            <Entry
-                x:Name="OtherCityEntry"
-                IsVisible="False"
-                Placeholder="Enter your city"
-                SemanticProperties.Hint="Specify your city"/>
+            <Label
+                x:Name="DisclaimerCity"
+                Text="As of now, the app is only available for Vancouver and Victoria, BC. If you're not there, let us know where you are as we're expanding!"
+                Margin="20"
+                TextColor="#fff0ff"/>
 
             <Button
                 x:Name="ConfirmBtn"
-                Text="Confirm"
+                Text="Enter"
                 SemanticProperties.Hint="Confirm city selection"
                 Clicked="OnConfirmClicked"
                 BackgroundColor="#3ab54a"
-                TextColor="#000000"/>
+                WidthRequest="180"
+                TextColor="#000000"
+                Margin="10"/>
+
+            <Entry
+                x:Name="OtherCityEntry"
+                IsVisible="True"
+                Placeholder="Enter your city"
+                TextChanged="OnTextChanged"
+                HorizontalOptions="Center"
+                SemanticProperties.Hint="Specify your city"/>
+
         </VerticalStackLayout>
     </Grid>
 

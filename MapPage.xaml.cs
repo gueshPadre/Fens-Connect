@@ -27,6 +27,7 @@ public partial class MapPage : ContentPage
     string _city = string.Empty;
     List<LocationMarkers> businessDict = new List<LocationMarkers>();
     Location currentLoc;
+    string currentCity = string.Empty;
     LocationMarkers closestLoc;
     public string City
     {
@@ -66,7 +67,7 @@ public partial class MapPage : ContentPage
         {
             e.Cancel = true; // Cancel the navigation to prevent loading an invalid URL
 
-            if (e.Url.Contains("getdirections"))
+            if (e.Url.Contains("getDirections"))
             {
                 var pUri = new Uri(e.Url);
                 var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
@@ -254,6 +255,9 @@ public partial class MapPage : ContentPage
             $" \nThe closest one is {pClosestBusiness?.Name} at {(pDist * 1000).ToString("##")} meters or " +
             $"approximately {((pDist * 1000) / 1.8f /*Average walking speed*/
             / 60 /*to show in minutes*/).ToString("##")} mins";
+
+        CityTitleLabel.Text = $"{currentCity}";
+        CityTitleLabel.IsVisible = true;
         SafePlacesAround.IsVisible = true;
         GoToClosestLocBtn.IsVisible = true;
     }
@@ -285,6 +289,16 @@ public partial class MapPage : ContentPage
             lat = currentLoc.Latitude;
             lng = currentLoc.Longitude;
         }
+
+        var placemarks = await Geocoding.Default.GetPlacemarksAsync(lat, lng);
+        var placemark = placemarks?.FirstOrDefault();
+
+        if (placemark != null)
+        {
+            // Locality generally represents the City name
+            currentCity = placemark.Locality;
+        }
+
         // Go to my location
         await MapView.EvaluateJavaScriptAsync($"flyToStartLoc({lng},{lat})");
 
@@ -401,7 +415,7 @@ public partial class MapPage : ContentPage
         $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
         $"{currentLoc.Longitude},{currentLoc.Latitude};{_busName.Lng},{_busName.Lat}" +
         $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
-        
+
         GetDirections(url, _busName.Name);
 
         //Close popup
@@ -411,6 +425,14 @@ public partial class MapPage : ContentPage
     // Triggered when clicked on the top right button to show the full list of businesses
     private async void ShowBusinessList(object? sender, EventArgs a)
     {
+        foreach (var pBus in businessDict)
+        {
+            var busLoc = new Location(pBus.Lat, pBus.Lng);
+            var pDist = currentLoc.CalculateDistance(busLoc, DistanceUnits.Kilometers);
+            //var pProperDist = pDist < 1 ? pDist : pDist * 1000;   if we want to show in meters when it's less than 1 km
+            await MapView.EvaluateJavaScriptAsync($"getDistanceToBusiness('{pBus.Name}','{(pDist).ToString("##.#")}')");
+        }
+
         await MapView.EvaluateJavaScriptAsync($"displayFullList()");
     }
 

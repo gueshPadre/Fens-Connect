@@ -11,11 +11,12 @@
         <VerticalStackLayout Grid.Row="0" Spacing="5">
             <HorizontalStackLayout Spacing="20">
             <Label
-                
+                HorizontalTextAlignment="End"
+                HorizontalOptions="End"
                 x:Name="CityTitleLabel"
-                HorizontalTextAlignment="Center"
+                IsVisible="Hidden"
                 Margin="80, 0,0,0 "
-                Text="Vancouver"
+                Text="Your City"
                 FontSize="40"
                 Style="{StaticResource Headline}" />
             <Button
@@ -31,6 +32,7 @@
                 Padding="0"
                 HeightRequest="25"
                 TextColor="Black"
+                HorizontalOptions="End"
                 Margin="10,0,0,0"/>
             </HorizontalStackLayout>
             <Label
