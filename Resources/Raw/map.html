@@ -65,6 +65,14 @@
 
         });
 
+        let userLoc;
+        let isInItinerary = false;
+        let shouldCancel = false;
+        let popupInfo = "";
+
+        function updateUserLocation(lng, lat) {
+            userLoc.setLngLat([lng, lat]);
+        }
 
 
         function getBounds() {
@@ -89,7 +97,7 @@
             });
 
             // Pin where user is
-            new mapboxgl.Marker({
+            userLoc = new mapboxgl.Marker({
                 color: '#0E4C92'
             })
                 .setLngLat([lng, lat])
@@ -110,7 +118,7 @@
                 setDist(dist) {
                     this.dist = dist;
                 }
-                
+
             }
 
 
@@ -252,6 +260,7 @@
             if (popupButton != null) {
                 popupButton.remove();
             }
+            shouldCancel = false;
 
         }
 
@@ -279,17 +288,27 @@
             closeButton.innerHTML = 'x';
 
             closeButton.classList.add('closeButton');
+            isInItinerary = isOnTimeout;
 
             closeButton.onclick = () => {
 
-                popup.classList.remove('show');
+                if (isInItinerary == true) {
+                    shouldCancel = true;
+                    setTimeout(() => {
+                        popup.classList.remove('show');
+                        popup.appendChild(closeButton);
+                        changeToMinimized();
+                    }, 250);
+                }
+                else {
+                    popup.classList.remove('show');
 
-                setTimeout(() => {
+                    setTimeout(() => {
 
-                    popup.remove();
+                        popup.remove();
 
-                }, 250);
-
+                    }, 250);
+                }
             };
 
             if (isOnTimeout == true) {
@@ -304,11 +323,12 @@
                     popup.classList.add('show');
 
                 }, 10);
-                setTimeout(() => {
-                    popup.classList.remove('show');
-                    changeToMinimized();
-                    //popup.remove();         // later to be 'REDUCED'
-                }, 2500);
+                if (!shouldCancel) {
+                    setTimeout(() => {
+                        popup.classList.remove('show');
+                        changeToMinimized();
+                    }, 2500);
+                }
             }
 
 
@@ -347,8 +367,20 @@
 
         function changeToMinimized() {
             const popupButton = document.getElementById('popupInfo');
+            if (popupButton == null) {
+                return;
+            }
+
+            if (popupButton.querySelector('#maximizeButton') != null) {
+                return;
+            }
+
+            if (!popupButton.classList.contains('minimized')) {
+                popupInfo = popupButton.innerHTML;      // Store the info before minimizing
+            }
+
             popupButton.classList.add('minimized');
-            popupInfo = popupButton.innerHTML;      // Store the info before minimizing
+            popupButton.classList.remove('show');
             popupButton.innerHTML = "";
 
             const maximizeButton = document.createElement('button');
@@ -368,35 +400,41 @@
                     dirButton.remove();
                 }
 
-                closeButton.classList.add('closeButton');
+                const closeButton = document.getElementById('closeButton');
+                //closeButton.classList.add('closeButton');
                 closeButton.innerHTML = 'x';
                 closeButton.onclick = () => {
-                    popupButton.classList.remove('show');
-                    setTimeout(() => {
-                        popupButton.remove();
-                    }, 250);
+                    // shouldCancel = true;
+                    if (closeTimeoutID != null) {
+                        clearTimeout(closeTimeoutID);
+                        setTimeout(() => {
+                            popupButton.classList.remove('show');
+                            changeToMinimized();
+                        }, 250);
+                    }
                 };
                 // Reduce again after 3 seconds
-                setTimeout(() => {
+                //if (!shouldCancel) {
+                const closeTimeoutID = setTimeout(() => {
                     popupButton.classList.remove('show');
-                    popupButton.classList.add('minimized');
                     changeToMinimized();
                 }, 3000);
 
+                //}
             };
 
         }
 
-        function closePopup() {
-            const popupButton = document.getElementById('popupInfo');
-            popupButton.classList.remove('show');
+        // function closePopup() {
+        //     const popupButton = document.getElementById('popupInfo');
+        //     popupButton.classList.remove('show');
 
-            setTimeout(() => {
+        //     setTimeout(() => {
 
-                popupButton.remove();
+        //         popupButton.remove();
 
-            }, 250);
-        }
+        //     }, 250);
+        // }
 
         function getDistanceToBusiness(busName, dist) {
             const bus = businessList.find(b => b.name === busName);
@@ -642,6 +680,7 @@
             .busList .bus-item {
                 display: flex;
                 align-items: center;
+                vertical-align: middle;
                 gap: 8px;
                 min-height: 20px;
                 line-height: 15px;
@@ -663,11 +702,10 @@
             }
 
             .busList .bus-dist {
-                flex:2;
+                flex: 2;
                 color: #FF0000;
                 font-size: 6px;
                 line-height: 8px;
-
                 display: flex;
                 flex-direction: column;
                 align-items: flex-end;
@@ -677,7 +715,7 @@
                 width: 25px;
                 height: 1px;
                 border-radius: 0px;
-                margin-top: 2px;
+                margin-top: 1.5px;
             }
 
             .busList.show {

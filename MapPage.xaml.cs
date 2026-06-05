@@ -29,6 +29,10 @@ public partial class MapPage : ContentPage
     Location currentLoc;
     string currentCity = string.Empty;
     LocationMarkers closestLoc;
+
+    LocationMarkers navigatingBusiness;     // the business that the user is currently navigating to, used to update the directions
+    bool isNavigatingToBus = false;     // whether the user is currently navigating to a business, used to update the directions if the user's location changes significantly
+
     public string City
     {
         get => _city;
@@ -304,7 +308,42 @@ public partial class MapPage : ContentPage
 
         // Load all markers on the map
         await LoadAllMarkers();
+
+        // don't await it beucase it'll stall
+        StartLocationTracking();
     }
+
+    private async Task StartLocationTracking()
+    {
+        // Start tracking the user's location and update the map accordingly
+        int index = 0;
+        var request = new GeolocationRequest(GeolocationAccuracy.High, TimeSpan.FromSeconds(2));
+        Location previousLoc = currentLoc;
+        while (true)
+        {
+            index++;
+            var location = await Geolocation.GetLocationAsync(request);
+            if (location != null)
+            {
+                currentLoc = new Location(location.Latitude, location.Longitude);
+                await MapView.EvaluateJavaScriptAsync($"updateUserLocation({currentLoc.Longitude}, {currentLoc.Latitude})");
+
+                // Check if position has changed enough to update directions (e.g., more than 200 meters)
+                if (currentLoc.CalculateDistance(previousLoc, DistanceUnits.Kilometers) >= 0.1f)
+                {
+                    // update directions 
+                    string url =
+                    $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
+                    $"{currentLoc.Longitude},{currentLoc.Latitude};{navigatingBusiness.Lng},{navigatingBusiness.Lat}" +
+                    $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
+
+                    GetDirections(url, navigatingBusiness.Name);
+                }
+            }
+            await Task.Delay(2000); // Update every 2 seconds
+        }
+    }
+
 
     async Task LoadAllMarkers()
     {
@@ -341,6 +380,7 @@ public partial class MapPage : ContentPage
         //await MapView.EvaluateJavaScriptAsync("ShowBusinessInfo('{test, test safeword, testExit}', 'true')");
         await MapView.EvaluateJavaScriptAsync($"ShowBusinessInfo('', true, '{closestLoc.Name}')");    // Later change to ID instead of name
 
+        navigatingBusiness = closestLoc;     // Set the navigating business to the closest one for future updates
         GetDirections(url, closestLoc.Name);
     }
 
@@ -348,10 +388,12 @@ public partial class MapPage : ContentPage
     /// <summary>
     /// Get the directions to the location described in the url and draw the route on the map, 
     /// also get the steps and display them in the itinerary
+    /// IMPORTANT: ALWAYS UPDATE THE NAVIGATING BUSINESS BEFORE CALLING THIS FUNCTION
     /// </summary>
     /// <param name="url">URL containing the parameters of the itinerary</param>
     async void GetDirections(string url, string _busName)
     {
+        isNavigatingToBus = true;
         FreeRoamGrid.IsVisible = false;
         ItineraryGrid.IsVisible = true;
         HttpClient client = new();
@@ -398,6 +440,7 @@ public partial class MapPage : ContentPage
 
     private async void GoBackFromItinerary(object? sender, EventArgs e)
     {
+        isNavigatingToBus = false;
         FreeRoamGrid.IsVisible = true;
         ItineraryGrid.IsVisible = false;
 
@@ -416,6 +459,7 @@ public partial class MapPage : ContentPage
         $"{currentLoc.Longitude},{currentLoc.Latitude};{_busName.Lng},{_busName.Lat}" +
         $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
 
+        navigatingBusiness = _busName;     // Set the navigating business for future updates
         GetDirections(url, _busName.Name);
 
         //Close popup

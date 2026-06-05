@@ -88,7 +88,7 @@
                     StrokeShape="RoundRectangle 12"
                     Stroke="Cyan"
                     StrokeThickness="3"
-                    BackgroundColor="#4169E100"
+                    BackgroundColor="#3ab54a"
                     Padding="10">
 
                     <Grid
