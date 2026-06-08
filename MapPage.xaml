@@ -5,21 +5,21 @@
              Shell.NavBarIsVisible="False"
              Title="Map">
 
-    <Grid RowDefinitions="Auto,Auto,*"
+    <Grid RowDefinitions="Auto,Auto,Auto,*"
           Padding="10"
           RowSpacing="15" >
         <VerticalStackLayout Grid.Row="0" Spacing="5">
-            <HorizontalStackLayout Spacing="20">
-            <Label
-                HorizontalTextAlignment="End"
-                HorizontalOptions="End"
+            <HorizontalStackLayout Spacing="15">
+                <Label
+                HorizontalTextAlignment="Start"
+                HorizontalOptions="Start"
                 x:Name="CityTitleLabel"
                 IsVisible="Hidden"
-                Margin="80, 0,0,0 "
-                Text="Your City"
-                FontSize="40"
+                Margin="25, 0,0,0 "
+                Text="You're only xxm from safety"
+                FontSize="20"
                 Style="{StaticResource Headline}" />
-            <Button
+                <Button
                 x:Name="SafePlaceListBtn"
                 Text="Show List"
                 Clicked="ShowBusinessList"
@@ -32,13 +32,13 @@
                 Padding="0"
                 HeightRequest="25"
                 TextColor="Black"
-                HorizontalOptions="End"
-                Margin="10,0,0,0"/>
+                HorizontalOptions="Start"
+                Margin="0,0,0,0"/>
             </HorizontalStackLayout>
             <Label
                 x:Name="SafePlacesAround"
                 Text="Safety map"
-                FontSize="15"
+                FontSize="12"
                 IsVisible="False"
                 Style="{StaticResource SubHeadline}"/>
             <Grid
@@ -147,9 +147,9 @@
         <Border
             x:Name="MapBorder"
             Grid.Row="1"
-            HeightRequest="250"
+            HeightRequest="450"
             MinimumHeightRequest="200"
-            MaximumHeightRequest="300"
+            MaximumHeightRequest="500"
             Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
             StrokeThickness="1"
             StrokeShape="RoundRectangle 12"
@@ -183,75 +183,111 @@
 
 
         <!-- Four options: icon | text -->
-        <Grid
-            Grid.Row="2"
-            RowDefinitions="Auto,Auto,Auto,Auto"
-            ColumnDefinitions="Auto,*"
-            RowSpacing="20"
-            ColumnSpacing="12">
-            <Image
-                Grid.Row="0"
+        <Label
+                Grid.Row="2"
+                Grid.Column="1"
+                Text="Activate Alone mode"
+                FontSize="12"
+                FontAttributes="Bold"
+                VerticalOptions="Center"
+                Margin="0, 0, 0, 150"
+                Style="{StaticResource SubHeadline}" />
+        <Image
+                Grid.Row="2"
                 Grid.Column="0"
                 Source="logo_empty_y.png"
                 Aspect="AspectFit"
-                MaximumHeightRequest="50"
+                MaximumHeightRequest="550"
+                MaximumWidthRequest="550"
+                HeightRequest="70"
+                WidthRequest="70"
                 VerticalOptions="Center"
-                SemanticProperties.Description="check yellow circle" />
-            <Label
-                Grid.Row="0"
-                Grid.Column="1"
-                Text="Turn on I'm Alone mode"
-                FontSize="20"
-                VerticalOptions="Center"
-                Style="{StaticResource SubHeadline}" />
-
-            <Image
-                Grid.Row="1"
+                SemanticProperties.Description="check yellow circle" 
+                Margin="0, 0, 0, 60"/>
+        <Grid
+            Grid.Row="3"
+            RowDefinitions="Auto, *"
+            ColumnDefinitions="Auto, Auto, Auto, *"
+            RowSpacing="20"
+            VerticalOptions="End"
+            ColumnSpacing="65">
+            <Border
                 Grid.Column="0"
-                Source="logo_empty_red.png"
-                Aspect="AspectFit"
-                MaximumHeightRequest="50"
-                VerticalOptions="Center"
-                SemanticProperties.Description="check red circle" />
-            <Label
-                Grid.Row="1"
-                Grid.Column="1"
-                Text="Mark Location as Sketchy"
-                FontSize="20"
-                VerticalOptions="Center"
-                Style="{StaticResource SubHeadline}" />
+                StrokeThickness="0"
+                BackgroundColor="Transparent"
+                TranslationX="20"
+                VerticalOptions="End">
 
-            <Image
-                Grid.Row="2"
-                Grid.Column="0"
-                Source="logo_empty_blue.png"
-                Aspect="AspectFit"
-                MaximumHeightRequest="50"
-                VerticalOptions="Center"
-                SemanticProperties.Description="check blue circle" />
-            <Label
-                Grid.Row="2"
-                Grid.Column="1"
-                Text="Propose or search for a walking group"
-                FontSize="20"
-                VerticalOptions="Center"
-                Style="{StaticResource SubHeadline}" />
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="FriendTabClicked" />
+                </Border.GestureRecognizers>
 
+                <Label
+                    x:Name="friendTab"
+                    Text="Friends"
+                    VerticalTextAlignment="End"
+                    FontSize="18"
+                    TextColor="White"
+                    Style="{StaticResource SubHeadline}" />
+
+            </Border>
             <Image
-                Grid.Row="3"
-                Grid.Column="0"
-                Source="logo_empty_r.png"
-                Aspect="AspectFit"
-                MaximumHeightRequest="50"
-                VerticalOptions="Center"
-                SemanticProperties.Description="check green circle" />
-            <Label
-                Grid.Row="3"
+                Grid.ColumnSpan="2"
+                Source="linev.png"
+                HeightRequest="10"
+                WidthRequest="5"
+                TranslationX="25"
+                ScaleY="4.5"
+                SemanticProperties.Description="Separator left Side"/>
+            <Border
                 Grid.Column="1"
-                Text="Safe Friends"
-                FontSize="20"
-                VerticalOptions="Center"
-                Style="{StaticResource SubHeadline}" />
+                StrokeThickness="0"
+                BackgroundColor="Transparent"
+                TranslationX="20"
+                VerticalOptions="End">
+
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="GroupTabClicked" />
+                </Border.GestureRecognizers>
+
+                <Label
+                    x:Name="GroupTab"
+                    Text="Group"
+                    VerticalTextAlignment="End"
+                    FontSize="18"
+                    TextColor="White"
+                    Style="{StaticResource SubHeadline}" />
+
+            </Border>
+            <Image
+                Grid.Column="1"
+                Grid.ColumnSpan="2"
+                Source="linev.png"
+                HeightRequest="10"
+                WidthRequest="5"
+                TranslationX="5"
+                ScaleY="4.5"
+                SemanticProperties.Description="Separator right Side"/>
+            <Border
+                Grid.Column="2"
+                StrokeThickness="0"
+                BackgroundColor="Transparent"
+                TranslationX="20"
+                VerticalOptions="End">
+
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OutTabClicked" />
+                </Border.GestureRecognizers>
+
+                <Label
+                    x:Name="OutTab"
+                    Text="What's out?"
+                    VerticalTextAlignment="End"
+                    FontSize="18"
+                    TextColor="White"
+                    Style="{StaticResource SubHeadline}" />
+
+            </Border>
         </Grid>
     </Grid>
 

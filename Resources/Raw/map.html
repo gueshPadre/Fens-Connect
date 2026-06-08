@@ -65,6 +65,44 @@
 
         });
 
+        // Create on-map buttons. Sketchy warning
+        const sketchy = document.createElement('div');
+        sketchy.id = 'sketchyCircle';
+        sketchy.className = 'sketchy';
+
+        const sketchyIcon = document.createElement('img');
+        sketchyIcon.className = 'map-icon';
+        sketchyIcon.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/caution.png';
+
+        sketchy.appendChild(sketchyIcon);
+
+        // Walk grp
+        const walkGrp = document.createElement('div');
+        walkGrp.id = 'walkCircle';
+        walkGrp.className = 'walkGrp';
+
+        const walkGrpIcon = document.createElement('img');
+        walkGrpIcon.className = 'map-icon';
+        walkGrpIcon.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/walkGrp.png';
+
+        walkGrp.appendChild(walkGrpIcon);
+
+        // friend alert
+        const friendAlrt = document.createElement('div');
+        friendAlrt.id = 'alertCircle';
+        friendAlrt.className = 'friendAlert';
+
+        const alertFriendIcon = document.createElement('img');
+        alertFriendIcon.className = 'map-icon';
+        alertFriendIcon.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/alertFriends2.png';
+
+        friendAlrt.appendChild(alertFriendIcon);
+
+
+        document.body.appendChild(sketchy);
+        document.body.appendChild(walkGrp);
+        document.body.appendChild(friendAlrt);
+
         let userLoc;
         let isInItinerary = false;
         let shouldCancel = false;
@@ -661,11 +699,11 @@
             gap: 8px;
             justify-content: flex-start;
             position: absolute;
-            max-height: 60vh;
+            max-height: 80vh;
             width: 100px;
-            height: 120px;
+            height: 160px;
             right: 35px;
-            top: 50%;
+            top: 30%;
             font-size: 8px;
             transform: translateY(-50%) scale(0.1);
             opacity: 0;
@@ -722,6 +760,58 @@
                 transform: translateY(-50%) scale(1.3);
                 opacity: 1;
             }
+
+        /* Shared styling */
+        .sketchy,
+        .walkGrp,
+        .friendAlert {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(65, 105, 225, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            right: 50px;
+            bottom: 10%;
+            color: white;
+            z-index: 1000;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            object-fit: cover;
+        }
+
+        /* Top circle */
+        .sketchy {
+            margin-bottom: 12%;
+            border: 1px double #ff0000;
+            box-shadow: 0 4px 12px rgba(255,0,0,0.3);
+        }
+
+
+        /* Bottom left */
+        .walkGrp {
+            margin-right: 8%;
+            border: 1px double #3ab54a;
+            box-shadow: 0 4px 12px rgba(58,181,74,0.3);
+        }
+        
+
+        /* Bottom right */
+        .friendAlert {
+            margin-right: -8%;
+            border: 1px double #ffd15c;
+            box-shadow: 0 4px 12px rgba(255,209,92,0.3);
+        }
+        
+        /*The icon inside the circles on the map in the bottom corner*/
+        .map-icon {
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+        }
+
     </style>
 </body>
 </html>

@@ -256,11 +256,10 @@ public partial class MapPage : ContentPage
         closestLoc = pClosestBusiness;
         // Display closest
         SafePlacesAround.Text = $"You have {visibleBusinesses.Count}  safe places around you." +
-            $" \nThe closest one is {pClosestBusiness?.Name} at {(pDist * 1000).ToString("##")} meters or " +
-            $"approximately {((pDist * 1000) / 1.8f /*Average walking speed*/
-            / 60 /*to show in minutes*/).ToString("##")} mins";
+            $" \nThe closest one is {pClosestBusiness?.Name}";
 
-        CityTitleLabel.Text = $"{currentCity}";
+        CityTitleLabel.Text = $"You're only {((pDist * 1000) / 1.8f /*Average walking speed*/
+            / 60 /*to show in minutes*/).ToString("##")} min from safety";
         CityTitleLabel.IsVisible = true;
         SafePlacesAround.IsVisible = true;
         GoToClosestLocBtn.IsVisible = true;
@@ -329,7 +328,7 @@ public partial class MapPage : ContentPage
                 await MapView.EvaluateJavaScriptAsync($"updateUserLocation({currentLoc.Longitude}, {currentLoc.Latitude})");
 
                 // Check if position has changed enough to update directions (e.g., more than 200 meters)
-                if (currentLoc.CalculateDistance(previousLoc, DistanceUnits.Kilometers) >= 0.1f)
+                if (currentLoc.CalculateDistance(previousLoc, DistanceUnits.Kilometers) >= 0.015f)
                 {
                     // update directions 
                     string url =
@@ -478,6 +477,28 @@ public partial class MapPage : ContentPage
         }
 
         await MapView.EvaluateJavaScriptAsync($"displayFullList()");
+    }
+
+    private void FriendTabClicked(object? sender, TappedEventArgs e)
+    {
+        // Show a list of friends
+        Debug.WriteLine($"[TAP] Clicked On Friend Tab");
+    }
+
+    private void GroupTabClicked(object? sender, TappedEventArgs e)
+    {
+        // Show their group list
+        Debug.WriteLine($"[TAP] Clicked On Group Tab");
+
+        //premium shows walking group
+    }
+
+    private void OutTabClicked(object? sender, TappedEventArgs e)
+    {
+        // Show safe places that are poppin'
+        Debug.WriteLine($"[TAP] Clicked On Out Tab");
+
+        //premium can ask ask for bid?
     }
 
 }
