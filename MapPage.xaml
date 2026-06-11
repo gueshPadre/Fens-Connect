@@ -5,21 +5,45 @@
              Shell.NavBarIsVisible="False"
              Title="Map">
 
+
+
     <Grid RowDefinitions="Auto,Auto,Auto,*"
           Padding="10"
-          RowSpacing="15" >
+          RowSpacing="15">
+
         <VerticalStackLayout Grid.Row="0" Spacing="5">
-            <HorizontalStackLayout Spacing="15">
+            <Grid ColumnDefinitions="Auto,*,Auto"
+                  RowDefinitions="Auto"
+                  ColumnSpacing="15"
+                  VerticalOptions="Center">
+                <Image
+                Grid.Column="0"
+                Source="settings.png"
+                x:Name="SettingsButton"
+                Aspect="AspectFit"
+                WidthRequest="30"
+                HeightRequest="30"
+                VerticalOptions="Start"
+                Margin="0, 0, 0, 0">
+
+                    <!--Click to reveal the Settings Menu-->
+                    <Image.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OpenSettings" />
+                    </Image.GestureRecognizers>
+                </Image>
                 <Label
-                HorizontalTextAlignment="Start"
-                HorizontalOptions="Start"
-                x:Name="CityTitleLabel"
+                Grid.Column="1"
+                HorizontalTextAlignment="Center"
+                HorizontalOptions="Center"
+                x:Name="TitleLabel"
                 IsVisible="Hidden"
-                Margin="25, 0,0,0 "
+                Margin="0, 0,0,0 "
                 Text="You're only xxm from safety"
-                FontSize="20"
-                Style="{StaticResource Headline}" />
+                FontSize="18"
+                Style="{StaticResource Headline}"
+                FontAttributes="Bold"/>
                 <Button
+                Grid.Column="2"
                 x:Name="SafePlaceListBtn"
                 Text="Show List"
                 Clicked="ShowBusinessList"
@@ -32,9 +56,9 @@
                 Padding="0"
                 HeightRequest="25"
                 TextColor="Black"
-                HorizontalOptions="Start"
+                HorizontalOptions="Center"
                 Margin="0,0,0,0"/>
-            </HorizontalStackLayout>
+            </Grid>
             <Label
                 x:Name="SafePlacesAround"
                 Text="Safety map"
@@ -178,11 +202,8 @@
             VerticalOptions="Center"
             HeightRequest="70"
             Source="proper_logo_transparent.png">
-
         </Image>
 
-
-        <!-- Four options: icon | text -->
         <Label
                 Grid.Row="2"
                 Grid.Column="1"
@@ -192,18 +213,38 @@
                 VerticalOptions="Center"
                 Margin="0, 0, 0, 150"
                 Style="{StaticResource SubHeadline}" />
-        <Image
-                Grid.Row="2"
+        <Grid 
+            Grid.Row="2"
+            WidthRequest="70"
+            HeightRequest="70">
+            <Image
                 Grid.Column="0"
                 Source="logo_empty_y.png"
                 Aspect="AspectFit"
-                MaximumHeightRequest="550"
-                MaximumWidthRequest="550"
+                MaximumHeightRequest="80"
+                MaximumWidthRequest="80"
                 HeightRequest="70"
                 WidthRequest="70"
                 VerticalOptions="Center"
-                SemanticProperties.Description="check yellow circle" 
-                Margin="0, 0, 0, 60"/>
+                SemanticProperties.Description="check yellow circle"
+                Margin="0, 0, 0, 60">
+
+
+                <Image.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="ActivateAloneMode" />
+                </Image.GestureRecognizers>
+            </Image>
+
+            <Image
+                Source="checkmark.png"
+                x:Name="AloneCheckMark"
+                IsVisible="False"
+                Aspect="AspectFill"
+                WidthRequest="50"
+                HeightRequest="50"
+                VerticalOptions="Center"
+                Margin="15, 0, 0, 85"/>
+        </Grid>
         <Grid
             Grid.Row="3"
             RowDefinitions="Auto, *"
@@ -289,6 +330,374 @@
 
             </Border>
         </Grid>
+
+
+        <!-- LAYER 2: The Settings Overlay (Hidden off-screen left by default) -->
+        <Grid 
+            x:Name="SettingsMenu" 
+            Grid.Row="0"
+            Grid.RowSpan="4"
+            ColumnDefinitions="7*, 5*"
+            TranslationX="-1000"
+            Margin="-15">
+
+            <!-- Left Half: The Actual Settings Panel -->
+            <Grid
+                x:Name="GeneralSettingsGrid"
+                RowDefinitions="Auto, *, Auto"
+                BackgroundColor="#3ab54a"
+                Padding="0, 30, 0, 30">
+
+                <VerticalStackLayout 
+                    Spacing="15">
+                    <Label
+                    Grid.Row="0"
+                    Text="Settings" 
+                    FontSize="25"
+                    TextColor="Black" 
+                    FontAttributes="Bold" 
+                    Margin="0,20,0,20"
+                    HorizontalTextAlignment="Center"/>
+                    <Button 
+                    Grid.Row="1"
+                    Text="General"
+                    Margin="0,100, 0, 0"
+                    FontSize="22"
+                    BackgroundColor="Transparent"/>
+                    <Button 
+                    Grid.Row="1"
+                    Text="Alone Mode Config" 
+                    Clicked="ShowAloneOptions"
+                    Margin="0,10"
+                    FontSize="22"
+                    LineBreakMode="CharacterWrap"
+                    BackgroundColor="Transparent"/>
+                    <Button 
+                    Grid.Row="1"
+                    Text="Privacy" 
+                    Margin="0,10"
+                    FontSize="22"
+                    BackgroundColor="Transparent"/>
+                    <Button
+                    Grid.Row="1"
+                    Text="Notifications" 
+                    Margin="0,10"
+                    FontSize="22"
+                    BackgroundColor="Transparent"/>
+                </VerticalStackLayout>
+                <Grid
+                    Grid.Row="2"
+                    ColumnDefinitions="Auto,*">
+                    <Button 
+                    Text="Back" 
+                    HeightRequest="50"
+                    WidthRequest="150"
+                    Clicked="OnCloseClicked" 
+                    CornerRadius="100"
+                    Margin="20, 0, 0, 0"
+                    BackgroundColor="White"/>
+                    <Image
+                    WidthRequest="35"
+                    HeightRequest="35"
+                    Source="profile.png"
+                    Grid.Column="1"/>
+                </Grid>
+            </Grid>
+
+
+            <!--Alone Mode Settings-->
+            <Grid
+                x:Name="AloneSettingsGrid"
+                RowDefinitions="Auto, *, Auto"
+                BackgroundColor="#3ab54a"
+                IsVisible="False"
+                Padding="0, 30, 0, 30">
+                <VerticalStackLayout>
+                    <Label
+                    Grid.Row="0"
+                    Text="Alone Mode" 
+                    FontSize="25"
+                    TextColor="Black" 
+                    FontAttributes="Bold" 
+                    Margin="0,20,0,20"
+                    HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <Grid
+                    Grid.Row="1">
+
+                    <VerticalStackLayout
+                        Spacing="30"
+                        Padding="0,70,0,0">     <!--Space between title and options-->
+
+                        <!--Combination Title / checkbox-->
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            RowDefinitions="Auto,Auto">
+
+                            <Border
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Grid.RowSpan="2"
+                            StrokeThickness="0"
+                            BackgroundColor="Transparent">
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="CallFriendBoxClicked" />
+                                </Border.GestureRecognizers>
+
+                            </Border>
+                            <Label
+                            Text="Call a friend"
+                            WidthRequest="150"
+                            HeightRequest="30"
+                            HorizontalTextAlignment="Center"
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            FontSize="22"
+                            TextColor="Black"/>
+
+                            <Label
+                            Grid.Row="1"
+                            Text="Choose the friend that's most likely to be able to help you, and call them with one click!"
+                            LineBreakMode="WordWrap"
+                            FontSize="8"
+                            Padding="30,2,30,0"
+                            HorizontalTextAlignment="Center"/>
+                            <!--Checkbox Grid-->
+                            <Grid
+                                Padding="10"
+                                Grid.RowSpan="2"
+                                Grid.Row="0"
+                                Grid.Column="1">
+
+                                <Image
+                                WidthRequest="30"
+                                HeightRequest="30"
+                                Source="logo_empty_y.png">
+
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="CallFriendBoxClicked" />
+                                    </Image.GestureRecognizers>
+                                </Image>
+                                <Image
+                                Source="checkmarkcentered.png"
+                                x:Name="callFriendCheckmark"
+                                IsVisible="True"
+                                WidthRequest="30"
+                                HeightRequest="30"/>
+                            </Grid>
+                        </Grid>
+
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            RowDefinitions="Auto,Auto">
+
+                            <Border
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Grid.RowSpan="2"
+                                StrokeThickness="0"
+                                BackgroundColor="Transparent">
+
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="DirectionsBoxClicked" />
+                                </Border.GestureRecognizers>
+                            </Border>
+                            <Label 
+                                WidthRequest="150"
+                                HorizontalTextAlignment="Center"
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Text="Directions to closest safe place" 
+                                TextColor="Black"
+                                FontSize="16"
+                                Padding="20,0,20,0"
+                                LineBreakMode="CharacterWrap"/>
+                            <Label
+                                Grid.Row="1"
+                                Text="Get directions to the closest safe place on your way!"
+                                LineBreakMode="WordWrap"
+                                FontSize="8"
+                                Padding="30,0,30,0"
+                                HorizontalTextAlignment="Center"/>
+
+                            <!--Checkbox Grid-->
+                            <Grid
+                                Padding="10"
+                                Grid.RowSpan="2"
+                                Grid.Row="0"
+                                Grid.Column="1">
+
+                                <Image
+                                    WidthRequest="30"
+                                    HeightRequest="30"
+                                    Source="logo_empty_y.png">
+
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="DirectionsBoxClicked" />
+                                    </Image.GestureRecognizers>
+                                </Image>
+                                <Image
+                                    Source="checkmarkcentered.png"
+                                    x:Name="directionsCheckmark"
+                                    IsVisible="True"
+                                    WidthRequest="30"
+                                    HeightRequest="30"/>
+                            </Grid>
+                        </Grid>
+
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            RowDefinitions="Auto,Auto">
+
+                            <Border
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Grid.RowSpan="2"
+                                StrokeThickness="0"
+                                BackgroundColor="Transparent">
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="SendSignalBoxClicked" />
+                                </Border.GestureRecognizers>
+                            </Border>
+                            
+                            <Label 
+                                WidthRequest="150"
+                                HorizontalTextAlignment="Center"
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Text="Send a signal to friend circle" 
+                                TextColor="Black"
+                                FontSize="16"
+                                Padding="20,0,20,0"
+                                LineBreakMode="CharacterWrap"/>
+                            <Label
+                                Grid.Row="1"
+                                Text="Quickly send a signal to all your friends with your location!"
+                                LineBreakMode="WordWrap"
+                                FontSize="8"
+                                Padding="30,0,30,0"
+                                HorizontalTextAlignment="Center"/>
+
+                            <!--Checkbox Grid-->
+                            <Grid
+                                Padding="10"
+                                Grid.RowSpan="2"
+                                Grid.Row="0"
+                                Grid.Column="1">
+
+                                <Image
+                                    WidthRequest="30"
+                                    HeightRequest="30"
+                                    Source="logo_empty_y.png">
+
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="SendSignalBoxClicked" />
+                                    </Image.GestureRecognizers>
+                                </Image>
+                                <Image
+                                    Source="checkmarkcentered.png"
+                                    x:Name="sendSignalCheckmark"
+                                    IsVisible="True"
+                                    WidthRequest="30"
+                                    HeightRequest="30"/>
+                            </Grid>
+
+                        </Grid>
+
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            RowDefinitions="Auto,Auto">
+
+                            <Border
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Grid.RowSpan="2"
+                                StrokeThickness="0"
+                                BackgroundColor="Transparent">
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="AutomaticActivationBoxClicked" />
+                                </Border.GestureRecognizers>
+                            </Border>
+
+                            <Label 
+                                WidthRequest="150"
+                                HorizontalTextAlignment="Center"
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Text="Automatically activated" 
+                                TextColor="Black"
+                                FontSize="16"
+                                Padding="20,0,20,0"
+                                LineBreakMode="CharacterWrap"/>
+                            <Label
+                                Grid.Row="1"
+                                Text="Choose when you're most likely going to be alone and don't worry about remembering to activate it!"
+                                LineBreakMode="WordWrap"
+                                FontSize="8"
+                                Padding="30,0,30,0"
+                                HorizontalTextAlignment="Center"/>
+
+                            <!--Checkbox Grid-->
+                            <Grid
+                                Padding="10"
+                                Grid.RowSpan="2"
+                                Grid.Row="0"
+                                Grid.Column="1">
+
+                                <Image
+                                    WidthRequest="30"
+                                    HeightRequest="30"
+                                    Source="logo_empty_y.png">
+
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="AutomaticActivationBoxClicked" />
+                                    </Image.GestureRecognizers>
+                                </Image>
+                                <Image
+                                    Source="checkmarkcentered.png"
+                                    x:Name="ActivateAutomaticallyCheckmark"
+                                    IsVisible="True"
+                                    WidthRequest="30"
+                                    HeightRequest="30"/>
+                            </Grid>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Grid>
+                <Grid
+                    Grid.Row="2"
+                    ColumnDefinitions="Auto,*">
+                    <Button 
+                    Text="Back" 
+                    HeightRequest="50"
+                    WidthRequest="150"
+                    Clicked="BackFromAloneModeSettings" 
+                    CornerRadius="100"
+                    Margin="20, 0, 0, 0"
+                    BackgroundColor="White"/>
+                    <Image
+                    WidthRequest="35"
+                    HeightRequest="35"
+                    Source="profile.png"
+                    Grid.Column="1"/>
+                </Grid>
+            </Grid>
+
+
+
+            <!-- Right Half: Transparent Dismiss Zone -->
+            <BoxView Grid.Column="1" BackgroundColor="#80000000">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCloseClicked" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+        </Grid>
+
     </Grid>
+
 
 </ContentPage>

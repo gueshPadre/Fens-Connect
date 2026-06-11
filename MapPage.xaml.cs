@@ -33,13 +33,15 @@ public partial class MapPage : ContentPage
     LocationMarkers navigatingBusiness;     // the business that the user is currently navigating to, used to update the directions
     bool isNavigatingToBus = false;     // whether the user is currently navigating to a business, used to update the directions if the user's location changes significantly
 
+
+    public bool IsAlone { get; set; }
     public string City
     {
         get => _city;
         set
         {
             _city = Uri.UnescapeDataString(value ?? string.Empty);
-            UpdateCityDisplay();
+            //UpdateCityDisplay();
         }
     }
 
@@ -258,9 +260,9 @@ public partial class MapPage : ContentPage
         SafePlacesAround.Text = $"You have {visibleBusinesses.Count}  safe places around you." +
             $" \nThe closest one is {pClosestBusiness?.Name}";
 
-        CityTitleLabel.Text = $"You're only {((pDist * 1000) / 1.8f /*Average walking speed*/
+        TitleLabel.Text = $"You're only {((pDist * 1000) / 1.8f /*Average walking speed*/
             / 60 /*to show in minutes*/).ToString("##")} min from safety";
-        CityTitleLabel.IsVisible = true;
+        TitleLabel.IsVisible = true;
         SafePlacesAround.IsVisible = true;
         GoToClosestLocBtn.IsVisible = true;
     }
@@ -309,7 +311,7 @@ public partial class MapPage : ContentPage
         await LoadAllMarkers();
 
         // don't await it beucase it'll stall
-        StartLocationTracking();
+        //StartLocationTracking();
     }
 
     private async Task StartLocationTracking()
@@ -353,15 +355,15 @@ public partial class MapPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        UpdateCityDisplay();
+        //UpdateCityDisplay();
     }
 
-    void UpdateCityDisplay()
-    {
-        var displayCity = string.IsNullOrWhiteSpace(_city) ? "Your area" : _city;
-        CityTitleLabel.Text = displayCity;
-        Title = displayCity;
-    }
+    //void UpdateCityDisplay()
+    //{
+    //    var displayCity = string.IsNullOrWhiteSpace(_city) ? "Your area" : _city;
+    //    CityTitleLabel.Text = displayCity;
+    //    Title = displayCity;
+    //}
 
     /// <summary>
     /// Draws the route to the closest safe place
@@ -449,7 +451,7 @@ public partial class MapPage : ContentPage
         await MapView.EvaluateJavaScriptAsync($"clearRoute()");
     }
 
-    public async Task GetDirectionsToBusiness(LocationMarkers _busName)
+    public async void GetDirectionsToBusiness(LocationMarkers _busName)
     {
         //Navigate to that business location and show the itinerary
 
@@ -501,4 +503,79 @@ public partial class MapPage : ContentPage
         //premium can ask ask for bid?
     }
 
+
+    private void ActivateAloneMode(object? sender, TappedEventArgs e)
+    {
+        // Activate alone mode
+        IsAlone = !IsAlone;
+
+        // if just got turned on, put check inside the logo
+        if (IsAlone)
+            AloneCheckMark.IsVisible = true;
+        else
+            AloneCheckMark.IsVisible = false;
+    }
+
+    private async void OpenSettings(object? sender, TappedEventArgs e)
+    {
+        SettingsMenu.InputTransparent = false;
+        await SettingsMenu.TranslateToAsync(0, 0, 250, Easing.SinInOut);
+    }
+
+
+    async Task CloseSettingsMenu()
+    {
+        await SettingsMenu.TranslateToAsync(-this.Width, 0, 200, Easing.SinIn);
+        GeneralSettingsGrid.IsVisible = true;       // Make sure that when we re-open, we're on the general menu again
+    }
+
+    private async void OnCloseClicked(object? sender, EventArgs e)
+    {
+        await CloseSettingsMenu();
+    }
+
+    private async void ShowAloneOptions(object? sender, EventArgs e)
+    {
+
+        AloneSettingsGrid.IsVisible = true;
+        await AloneSettingsGrid.TranslateToAsync(0, 0, 200, Easing.SinIn);
+        GeneralSettingsGrid.IsVisible = false;
+    }
+
+    private async void BackFromAloneModeSettings(object? sender, EventArgs e)
+    {
+        await BackToSettingsMenu();
+    }
+
+    async Task BackToSettingsMenu()
+    {
+        GeneralSettingsGrid.IsVisible = true;
+        await AloneSettingsGrid.TranslateToAsync(-this.Width, 0, 200, Easing.SinIn);
+        AloneSettingsGrid.IsVisible = false;
+    }
+
+    private void CallFriendBoxClicked(object? sender, TappedEventArgs e)
+    {
+        callFriendCheckmark.IsVisible = !callFriendCheckmark.IsVisible;
+    }
+
+    /// <summary>
+    /// The checkbox in the Alone Mode Settings clicked
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void DirectionsBoxClicked(object? sender, TappedEventArgs e)
+    {
+        directionsCheckmark.IsVisible = !directionsCheckmark.IsVisible;
+    }
+
+    private void SendSignalBoxClicked(object? sender, TappedEventArgs e)
+    {
+        sendSignalCheckmark.IsVisible = !sendSignalCheckmark.IsVisible;
+    }
+
+    private void AutomaticActivationBoxClicked(object? sender, TappedEventArgs e)
+    {
+        ActivateAutomaticallyCheckmark.IsVisible = !ActivateAutomaticallyCheckmark.IsVisible;
+    }
 }
