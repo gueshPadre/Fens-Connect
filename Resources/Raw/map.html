@@ -152,10 +152,34 @@
                     this.safeword = safeword;
                     this.alternativeExit = alternativeExit;
                     this.imgSrc = imgSrc;
+                    this.openedHours = {};
+                    this.closedHours = {};
                 }
                 // distance to current location
                 setDist(dist) {
                     this.dist = dist;
+                }
+
+                // Set Opening Hours
+                setOpeningHours(mon, tue, wed, thu, fri, sat, sun) {
+                    this.openedHours["Monday"] = mon;
+                    this.openedHours["Tuesday"] = tue;
+                    this.openedHours["Wednesday"] = wed;
+                    this.openedHours["Thursday"] = thu;
+                    this.openedHours["Friday"] = fri;
+                    this.openedHours["Saturday"] = sat;
+                    this.openedHours["Sunday"] = sun;
+                }
+
+                // Set Opening Hours
+                setClosingHours(mon, tue, wed, thu, fri, sat, sun) {
+                    this.closedHours["Monday"] = mon;
+                    this.closedHours["Tuesday"] = tue;
+                    this.closedHours["Wednesday"] = wed;
+                    this.closedHours["Thursday"] = thu;
+                    this.closedHours["Friday"] = fri;
+                    this.closedHours["Saturday"] = sat;
+                    this.closedHours["Sunday"] = sun;
                 }
 
             }
@@ -169,12 +193,15 @@
                 imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vcc_marker1.png'
             });
 
+            // Set opening and closing hours for VCC
+            vcc_b.setOpeningHours('09:00', '09:00', '09:00', '09:00', '09:00', '09:00', '09:00');
+            vcc_b.setClosingHours('23:00', '23:00', '23:00', '23:00', '23:00', '23:00', '23:00');
+
             const vcc = createMarker(vcc_b.imgSrc,
                 -123.38619508440203, 48.43005130786145, vcc_b);
             // Get info of the marker
             markerList.push(vcc.getLngLat());
             nameList.push(vcc_b.name);
-
             //------
 
             // Big Wheel Burger
@@ -184,6 +211,11 @@
                 alternativeExit: 'Yes',
                 imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/bwb_marker1.png'
             });
+
+            // Set opening and closing hours for bwb
+            bwb_b.setOpeningHours('11:00', '11:00', '11:00', '11:00', '11:00', '11:00', '11:00');
+            bwb_b.setClosingHours('21:00', '21:00', '21:00', '21:00', '21:00', '21:00', '21:00');
+
             const bwg = createMarker(bwb_b.imgSrc,
                 -123.38085452996481, 48.432426309628234, bwb_b);
             // Get info of the marker
@@ -238,6 +270,31 @@
         }
 
         function createMarker(url, lng, lat, bus) {
+            // Check if Business is open first
+
+            // 1. Get current time in minutes since midnight
+            const now = new Date();
+            const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+            const dayName = now.toLocaleString('en-US', { weekday: 'long' });
+
+            // 2. Parse opening hour (e.g., "09:00") into minutes
+            const openingTimeStr = bus.openedHours[dayName];
+            const [openHours, openMinutes] = openingTimeStr.split(":").map(Number);
+            const openingMinutes = (openHours * 60) + openMinutes;
+
+
+            // 3. Parse closing hour (e.g., "23:00") into minutes
+            const closingTimeStr = bus.closedHours[dayName];
+            const [closeHours, closeMinutes] = closingTimeStr.split(":").map(Number);
+            const closingMinutes = (closeHours * 60) + closeMinutes;
+
+            // 3. Directly compare the numbers
+            // if (currentMinutes < openingMinutes || currentMinutes >= closingMinutes) {
+            //     // if Close, don't show marker
+            //     //TODO: Offer an alternative.. For now just skip
+            //     return;
+            // }
+
 
             const markerAnchor = document.createElement('div');
             markerAnchor.className = 'marker-anchor';

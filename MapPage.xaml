@@ -7,7 +7,7 @@
 
 
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*"
+    <Grid RowDefinitions="Auto,Auto,*,Auto"
           Padding="10"
           RowSpacing="15">
 
@@ -23,8 +23,7 @@
                 Aspect="AspectFit"
                 WidthRequest="30"
                 HeightRequest="30"
-                VerticalOptions="Start"
-                Margin="0, 0, 0, 0">
+                VerticalOptions="Start">
 
                     <!--Click to reveal the Settings Menu-->
                     <Image.GestureRecognizers>
@@ -37,7 +36,6 @@
                 HorizontalOptions="Center"
                 x:Name="TitleLabel"
                 IsVisible="Hidden"
-                Margin="0, 0,0,0 "
                 Text="You're only xxm from safety"
                 FontSize="18"
                 Style="{StaticResource Headline}"
@@ -56,8 +54,7 @@
                 Padding="0"
                 HeightRequest="25"
                 TextColor="Black"
-                HorizontalOptions="Center"
-                Margin="0,0,0,0"/>
+                HorizontalOptions="Center"/>
             </Grid>
             <Label
                 x:Name="SafePlacesAround"
@@ -168,6 +165,7 @@
             </Grid>
         </VerticalStackLayout>
         <!-- Map display heigh and width -->
+
         <Border
             x:Name="MapBorder"
             Grid.Row="1"
@@ -177,48 +175,58 @@
             Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
             StrokeThickness="1"
             StrokeShape="RoundRectangle 12"
-            BackgroundColor="#3ab54a">
+            BackgroundColor="White">
             <WebView
                 x:Name="MapView"
+                IsVisible="False"
                 Navigating="OnWebViewNavigating"
                 HorizontalOptions="Fill"
                 VerticalOptions="Fill"/>
         </Border>
+        <Grid
+            RowDefinitions="*,*"
+            Grid.Row="1">
+            <Grid
+                RowDefinitions="*,Auto">
+                
+            <VerticalStackLayout
+                Grid.Row="1">
 
-        <Label
-            x:Name="LoadingText"
-            Grid.Row="1"
-            IsVisible="False"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"
-            TextColor="Black">
-        </Label>
-        <Image
-            Grid.Row="1"
-            TranslationY="50"
-            x:Name="LoadingImage"
-            IsVisible="False"
-            HorizontalOptions="Center"
-            VerticalOptions="Center"
-            HeightRequest="70"
-            Source="proper_logo_transparent.png">
-        </Image>
+                <Label
+                    x:Name="LoadingText"
+                    Text="Loading Map..."
+                    IsVisible="False"
+                    HorizontalTextAlignment="Center"
+                    VerticalTextAlignment="Center"
+                    HeightRequest="40"
+                    WidthRequest="100"
+                    TextColor="Black">
+                </Label>
+                <Image
+                    x:Name="LoadingImage"
+                    IsVisible="False"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    HeightRequest="70"
+                    Source="proper_logo_transparent.png">
+                </Image>
+            </VerticalStackLayout>
+            </Grid>
+        </Grid>
 
-        <Label
-                Grid.Row="2"
-                Grid.Column="1"
+
+        <Grid 
+            RowDefinitions="Auto,Auto"
+            Grid.Row="2">
+            <Label
+                Grid.Row="0"
                 Text="Activate Alone mode"
                 FontSize="12"
                 FontAttributes="Bold"
                 VerticalOptions="Center"
-                Margin="0, 0, 0, 150"
                 Style="{StaticResource SubHeadline}" />
-        <Grid 
-            Grid.Row="2"
-            WidthRequest="70"
-            HeightRequest="70">
             <Image
-                Grid.Column="0"
+                Grid.Row="1"
                 Source="logo_empty_y.png"
                 Aspect="AspectFit"
                 MaximumHeightRequest="80"
@@ -226,8 +234,7 @@
                 HeightRequest="70"
                 WidthRequest="70"
                 VerticalOptions="Center"
-                SemanticProperties.Description="check yellow circle"
-                Margin="0, 0, 0, 60">
+                SemanticProperties.Description="check yellow circle">
 
 
                 <Image.GestureRecognizers>
@@ -236,56 +243,53 @@
             </Image>
 
             <Image
-                Source="checkmark.png"
+                Source="checkmarkcentered.png"
+                Grid.Row="1"
                 x:Name="AloneCheckMark"
                 IsVisible="False"
                 Aspect="AspectFill"
-                WidthRequest="50"
-                HeightRequest="50"
-                VerticalOptions="Center"
-                Margin="15, 0, 0, 85"/>
+                WidthRequest="60"
+                HeightRequest="60"
+                VerticalOptions="Center"/>
         </Grid>
         <Grid
             Grid.Row="3"
-            RowDefinitions="Auto, *"
-            ColumnDefinitions="Auto, Auto, Auto, *"
-            RowSpacing="20"
-            VerticalOptions="End"
-            ColumnSpacing="65">
+            RowDefinitions="*,Auto"
+            Padding="0,0,10,0"
+            ColumnDefinitions="*,*,*">
             <Border
-                Grid.Column="0"
+                Grid.Row="1"
+                HeightRequest="30"
                 StrokeThickness="0"
-                BackgroundColor="Transparent"
-                TranslationX="20"
-                VerticalOptions="End">
+                BackgroundColor="Transparent">
 
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="FriendTabClicked" />
                 </Border.GestureRecognizers>
 
                 <Label
+                    Grid.Row="1"
                     x:Name="friendTab"
                     Text="Friends"
-                    VerticalTextAlignment="End"
                     FontSize="18"
                     TextColor="White"
                     Style="{StaticResource SubHeadline}" />
 
             </Border>
             <Image
+                Grid.RowSpan="2"
                 Grid.ColumnSpan="2"
-                Source="linev.png"
-                HeightRequest="10"
-                WidthRequest="5"
-                TranslationX="25"
-                ScaleY="4.5"
+                Source="lineskinny.png"
+                HeightRequest="50"
+                WidthRequest="40"
+                
                 SemanticProperties.Description="Separator left Side"/>
             <Border
+                Grid.Row="1"
                 Grid.Column="1"
+                HeightRequest="30"
                 StrokeThickness="0"
-                BackgroundColor="Transparent"
-                TranslationX="20"
-                VerticalOptions="End">
+                BackgroundColor="Transparent">
 
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="GroupTabClicked" />
@@ -294,7 +298,6 @@
                 <Label
                     x:Name="GroupTab"
                     Text="Group"
-                    VerticalTextAlignment="End"
                     FontSize="18"
                     TextColor="White"
                     Style="{StaticResource SubHeadline}" />
@@ -303,18 +306,17 @@
             <Image
                 Grid.Column="1"
                 Grid.ColumnSpan="2"
-                Source="linev.png"
-                HeightRequest="10"
-                WidthRequest="5"
-                TranslationX="5"
-                ScaleY="4.5"
+                Grid.RowSpan="2"
+                Source="lineskinny.png"
+                HeightRequest="50"
+                WidthRequest="40"
                 SemanticProperties.Description="Separator right Side"/>
             <Border
-                Grid.Column="2"
+                Grid.Row="1"
+                Grid.Column="3"
+                HeightRequest="30"
                 StrokeThickness="0"
-                BackgroundColor="Transparent"
-                TranslationX="20"
-                VerticalOptions="End">
+                BackgroundColor="Transparent">
 
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OutTabClicked" />
@@ -323,8 +325,8 @@
                 <Label
                     x:Name="OutTab"
                     Text="What's out?"
-                    VerticalTextAlignment="End"
                     FontSize="18"
+                    Padding="15,0,0,0"
                     TextColor="White"
                     Style="{StaticResource SubHeadline}" />
 
@@ -431,7 +433,8 @@
 
                     <VerticalStackLayout
                         Spacing="30"
-                        Padding="0,70,0,0">     <!--Space between title and options-->
+                        Padding="0,70,0,0">
+                        <!--Space between title and options-->
 
                         <!--Combination Title / checkbox-->
                         <Grid
@@ -566,7 +569,7 @@
                                     <TapGestureRecognizer Tapped="SendSignalBoxClicked" />
                                 </Border.GestureRecognizers>
                             </Border>
-                            
+
                             <Label 
                                 WidthRequest="150"
                                 HorizontalTextAlignment="Center"

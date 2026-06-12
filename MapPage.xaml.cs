@@ -103,7 +103,7 @@ public partial class MapPage : ContentPage
     async void HandleMapLocation()
     {
         MapView.IsVisible = false;
-        MapBorder.IsVisible = false;
+        //MapBorder.IsVisible = true;
         await GoToLocation();
 
         LoadingText.IsVisible = false;
