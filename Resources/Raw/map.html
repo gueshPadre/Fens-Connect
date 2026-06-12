@@ -107,6 +107,7 @@
         let isInItinerary = false;
         let shouldCancel = false;
         let popupInfo = "";
+        let oldPopup;
 
         function updateUserLocation(lng, lat) {
             userLoc.setLngLat([lng, lat]);
@@ -310,6 +311,12 @@
                     alert("Error: No Business were found!");
                 }
             }
+
+            const oldP = document.getElementById('popupInfo');
+            if (oldP != null) {
+                oldPopup = oldP;
+            }
+
             const popup = document.createElement('div');
 
             popup.id = 'popupInfo';
@@ -329,9 +336,8 @@
             isInItinerary = isOnTimeout;
 
             closeButton.onclick = () => {
-
+                oldPopup = null;
                 if (isInItinerary == true) {
-                    shouldCancel = true;
                     setTimeout(() => {
                         popup.classList.remove('show');
                         popup.appendChild(closeButton);
@@ -385,6 +391,12 @@
                     window.location.href =
                         'app://getDirections?businessName=' +
                         encodeURIComponent(business.name);
+                    // Handle if there's already a minimized Popup
+                    if (oldPopup != null) {
+                        oldPopup.remove();
+                        oldPopup = null;
+                    }
+                    popup.classList.remove('maximizeButton');
                 };
 
 
@@ -431,18 +443,27 @@
                 popupButton.classList.remove('minimized');
                 popupButton.innerHTML = popupInfo;      // Restore the info when maximizing
                 popupButton.classList.add('show');
+                popupButton.style.zIndex = '100';
+                // If there's another one minimized, just remove the old popup dir button
+                if (oldPopup != null) {
+                    const dirButton = oldPopup.querySelector('#directionsButton');
+                    if (dirButton != null) {
+                        dirButton.remove();
+                    }
+                }
+                else {
+                    //remove directions Button if there's one
+                    const dirButton = document.getElementById('directionsButton');
+                    if (dirButton != null) {
+                        dirButton.remove();
+                    }
 
-                //remove directions Button if there's one
-                const dirButton = document.getElementById('directionsButton');
-                if (dirButton != null) {
-                    dirButton.remove();
                 }
 
+
                 const closeButton = document.getElementById('closeButton');
-                //closeButton.classList.add('closeButton');
                 closeButton.innerHTML = 'x';
                 closeButton.onclick = () => {
-                    // shouldCancel = true;
                     if (closeTimeoutID != null) {
                         clearTimeout(closeTimeoutID);
                         setTimeout(() => {
@@ -462,6 +483,7 @@
             };
 
         }
+
 
         // function closePopup() {
         //     const popupButton = document.getElementById('popupInfo');
@@ -796,7 +818,7 @@
             border: 1px double #3ab54a;
             box-shadow: 0 4px 12px rgba(58,181,74,0.3);
         }
-        
+
 
         /* Bottom right */
         .friendAlert {
@@ -804,14 +826,13 @@
             border: 1px double #ffd15c;
             box-shadow: 0 4px 12px rgba(255,209,92,0.3);
         }
-        
+
         /*The icon inside the circles on the map in the bottom corner*/
         .map-icon {
             width: 25px;
             height: 25px;
             border-radius: 4px;
         }
-
     </style>
 </body>
 </html>

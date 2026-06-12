@@ -353,9 +353,11 @@
                     <Label
                     Grid.Row="0"
                     Text="Settings" 
+                    TextDecorations="Underline"
                     FontSize="25"
                     TextColor="Black" 
-                    FontAttributes="Bold" 
+                    FontAttributes="Bold"
+                        
                     Margin="0,20,0,20"
                     HorizontalTextAlignment="Center"/>
                     <Button 
@@ -416,6 +418,7 @@
                     <Label
                     Grid.Row="0"
                     Text="Alone Mode" 
+                    TextDecorations="Underline"
                     FontSize="25"
                     TextColor="Black" 
                     FontAttributes="Bold" 
