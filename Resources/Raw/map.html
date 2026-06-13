@@ -74,6 +74,11 @@
         sketchyIcon.className = 'map-icon';
         sketchyIcon.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/caution.png';
 
+
+        sketchy.addEventListener('click', () => {
+            createAlertMarker();
+        });
+
         sketchy.appendChild(sketchyIcon);
 
         // Walk grp
@@ -108,6 +113,7 @@
         let shouldCancel = false;
         let popupInfo = "";
         let oldPopup;
+        let popupNotes = {};
 
         function updateUserLocation(lng, lat) {
             userLoc.setLngLat([lng, lat]);
@@ -329,6 +335,176 @@
 
         }
 
+        function createAlertMarker() {
+            const alertEl = document.createElement('div');
+            alertEl.className = 'alert-marker';
+
+            const alertImg = document.createElement('img');
+            alertImg.className = 'alert-Img';
+
+            alertImg.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/caution.png';
+            alertEl.appendChild(alertImg);
+
+            writeNoteForAlert();
+
+            alertEl.addEventListener('click', () => {
+                showAlertNote();
+            });
+
+
+            new mapboxgl.Marker({
+                element: alertEl
+            })
+                .setLngLat(userLoc.getLngLat())
+                .addTo(map);
+        }
+
+        function showAlertNote() {
+            // Check if already has note
+            if (popupNotes != null) {
+                const locKey = userLoc.getLngLat();
+                const keyStr = `${locKey.lng},${locKey.lat}`;
+                const alertNote = popupNotes[keyStr];
+                if (alertNote != null) {
+                    //Simply display the note.
+                    const popup = document.createElement('div');
+                    popup.id = 'sketchyAlertPopup';
+                    popup.classList.add('sketchyAlert-Popup');
+
+                    const subTitle = document.createElement('p');
+                    subTitle.className = 'sketchyAlertSubtitle'
+                    subTitle.innerText = alertNote;
+
+                    popup.appendChild(subTitle);
+                    document.body.appendChild(popup);
+
+                    setTimeout(() => {
+                        popup.classList.add('show');
+                    }, 10);
+
+                    //Close Button
+                    const closeButton = addCloseButton(popup);
+
+                    popup.appendChild(closeButton);
+                }
+                else {
+                    //Display a note that says there's no note
+                    const popup = document.createElement('div');
+                    popup.id = 'sketchyAlertPopup';
+                    popup.classList.add('sketchyAlert-Popup');
+
+                    const subTitle = document.createElement('p');
+                    subTitle.className = 'sketchyAlertSubtitle'
+                    subTitle.innerText = 'No note was left on this alert';
+
+                    popup.appendChild(subTitle);
+                    document.body.appendChild(popup);
+
+                    setTimeout(() => {
+                        popup.classList.add('show');
+                    }, 10);
+
+                    //Close Button
+                    const closeButton = addCloseButton(popup);
+
+                    popup.appendChild(closeButton);
+                }
+            }
+            else {
+                alert('No alert a this position');
+            }
+        }
+
+
+
+        function writeNoteForAlert() {
+
+
+            const popup = document.createElement('div');
+            popup.id = 'sketchyAlertPopup';
+            popup.classList.add('sketchyAlert-Popup');
+
+            const title = document.createElement('p');
+            title.innerText = "Write a note on what makes this location sketchy.";
+            popup.appendChild(title);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'ie. No lights, needles on ground, etc.';
+            input.classList.add('sketchyAlertPopup-input');
+
+            // input.onchange(() => {
+
+            // });
+
+            const closeButton = addCloseButton(popup);
+            popup.appendChild(closeButton);
+
+            popup.appendChild(input);
+
+            const saveBtn = document.createElement('button');
+            saveBtn.innerText = 'Save';
+            saveBtn.classList.add('sketchyAlertPopup-btn');
+
+            saveBtn.onclick = () => {
+                const noteText = input.value;
+                const subTitle = document.createElement('p');
+                subTitle.className = 'sketchyAlertSubtitle'
+                subTitle.innerText = noteText;
+                popup.appendChild(subTitle);
+
+                // Thanks message
+                const thxMsg = document.createElement('p');
+                thxMsg.className = 'sketchyAlertThxMsg'
+                thxMsg.innerText = 'Thank you for submitting your alert!';
+                popup.appendChild(thxMsg);
+
+                // Set dictionnary
+                const markLoc = userLoc.getLngLat();
+                const locKey = `${markLoc.lng},${markLoc.lat}`;
+                popupNotes[locKey] = noteText;
+
+                setTimeout(() => {
+                    title.remove();
+                    saveBtn.remove();
+                    input.remove();
+                }, 10);
+
+                setTimeout(() => {
+                    popup.classList.remove('show');
+                    setTimeout(() => popup.remove(), 250);
+                }, 3000);
+            };
+            popup.appendChild(saveBtn);
+
+
+            document.body.appendChild(popup);
+
+            setTimeout(() => {
+                popup.classList.add('show');
+            }, 10);
+        }
+
+        function addCloseButton(popup) {
+            //Close Button
+            const closeButton = document.createElement('button');
+
+            closeButton.id = 'closeButton';
+            closeButton.innerHTML = 'x';
+
+            closeButton.classList.add('closeButton');
+
+            closeButton.onclick = () => {
+                popup.classList.remove('show');
+
+                setTimeout(() => {
+
+                    popup.remove();
+
+                }, 250);
+            };
+            return closeButton;
+        }
 
 
         function drawRoute(routeGeoJson) {
@@ -655,7 +831,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            position: absolute;
+            position: fixed;
             line-height: 10px;
             height: 120px;
             width: 180px;
@@ -668,7 +844,8 @@
             padding: 20px;
             border-radius: 20px;
             box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            transition: transform 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.7s ease-out;
+            transition: all 0.6s ease;
+            /*transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease-out;*/
         }
 
             .popupInfo.show {
@@ -677,16 +854,20 @@
             }
 
             .popupInfo.minimized {
-                /*transform: translate(-200px, -150px) scale(0.3);*/
-                transform: translate(-160%, -160%) scale(0.3);
+                transform: scale(0.3);
                 opacity: 1;
                 border-radius: 50px;
                 color: #FFA500;
                 background-color: #FFA500;
                 width: 90px;
                 height: 40px;
+            /*Always goes to the top left corner 20px from top and 20 from left*/
+                top: 20px;
+                left: 20px;
+                transform-origin: top left;
                 transition: all 1.5s ease;
             }
+
 
         .closeButton {
             position: absolute;
@@ -707,7 +888,6 @@
             border: none;
             font-size: 10px;
             border-radius: 15px;
-            cursor: pointer;
             width: 160px;
             height: 40px;
         }
@@ -716,7 +896,6 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            cursor: pointer;
             border-radius: 50px;
             background-color: transparent;
         }
@@ -737,6 +916,7 @@
             width: 40px;
             height: 37px;
             overflow: visible;
+            z-index: 10;
         }
 
             .marker-pin .marker-logo {
@@ -769,6 +949,73 @@
             to {
                 transform: translateX(-50%) translateY(-5px);
             }
+        }
+
+
+        .alert-marker .alert-Img {
+            width: 40px;
+            height: 40px;
+            filter: drop-shadow(0 0 0.5rem rgb(255 0 0));
+        }
+
+        .sketchyAlert-Popup {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            line-height: 10px;
+            height: 100px;
+            width: 160px;
+            left: 50%;
+            top: 50%;
+            font-size: 12px;
+            transform: translate(-50%, -50%) scale(0.1);
+            opacity: 0;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            z-index: 0;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            transition: transform 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.7s ease-out;
+        }
+
+            .sketchyAlert-Popup.show {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 1;
+            }
+
+        .sketchyAlertPopup-input {
+            width: 75%;
+            height: 30%;
+            border: 1px solid #ccc;
+            border-radius: 5%;
+            font-size: 8px;
+            margin: 10% 0;
+        }
+
+        .sketchyAlertPopup-btn {
+            width: 40%;
+            height: 30%;
+            background-color: #3ab54a;
+            color: black;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .sketchyAlertSubtitle {
+            font-style: italic;
+        }
+
+        .sketchyAlertThxMsg {
+            display: flex;
+            justify-content: center;
+            align-content: center;
+            color: #3ab54a;
+            text-align: center;
+            text-align-last: center;
         }
 
         .busList {
@@ -880,8 +1127,8 @@
         /* Bottom right */
         .friendAlert {
             margin-right: -8%;
-            border: 1px double #ffd15c;
-            box-shadow: 0 4px 12px rgba(255,209,92,0.3);
+            border: 1px double #8a6812;
+            box-shadow: 0 4px 12px rgba(138,104,18,0.3);
         }
 
         /*The icon inside the circles on the map in the bottom corner*/
