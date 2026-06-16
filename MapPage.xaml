@@ -61,9 +61,10 @@
                 Text="Safety map"
                 FontSize="12"
                 IsVisible="False"
+                Padding="10,0,10,0"
                 Style="{StaticResource SubHeadline}"/>
             <Grid
-            RowSpacing="10"
+            RowSpacing="30"
             x:Name="FreeRoamGrid"
             IsVisible="True"
             ColumnSpacing="5">
@@ -74,6 +75,7 @@
                     FontSize="12"
                     SemanticProperties.Hint="Gets the location and info"
                     Clicked="NavigateToClosestLocation"
+                    LineBreakMode="CharacterWrap"
                     IsVisible="True"
                     BackgroundColor="#3ab54a"
                     WidthRequest="135"

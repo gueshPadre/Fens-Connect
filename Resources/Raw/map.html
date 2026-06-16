@@ -34,6 +34,11 @@
 
         mapboxgl.accessToken = 'pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g';
 
+        const closedMap = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12'
+        });
+
         const map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/streets-v12'
@@ -104,9 +109,27 @@
         friendAlrt.appendChild(alertFriendIcon);
 
 
+        // Relocalization Button
+        const reloc = document.createElement('div');
+        reloc.id = 'relocPanel';
+        reloc.className = 'relocPanel';
+
+        const relocIcon = document.createElement('img');
+        relocIcon.className = 'reloc-icon';
+        relocIcon.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/localizationRefocus.png';
+
+        reloc.addEventListener('click', () => {
+            relocateToCurrentLoc();
+        });
+
+        reloc.appendChild(relocIcon);
+
+
+
         document.body.appendChild(sketchy);
         document.body.appendChild(walkGrp);
         document.body.appendChild(friendAlrt);
+        document.body.appendChild(reloc);
 
         let userLoc;
         let isInItinerary = false;
@@ -117,6 +140,18 @@
 
         function updateUserLocation(lng, lat) {
             userLoc.setLngLat([lng, lat]);
+        }
+
+        function relocateToCurrentLoc() {
+            const myPos = userLoc.getLngLat();
+            const lng = myPos.lng;
+            const lat = myPos.lat;
+            map.easeTo({
+                center: [lng, lat],
+                bearing: 0,          // Faces North
+                zoom: 14,           // reg zoom lvl
+                duration: 1500       // in milli
+            });
         }
 
 
@@ -160,6 +195,8 @@
                     this.imgSrc = imgSrc;
                     this.openedHours = {};
                     this.closedHours = {};
+                    this.isClosed = false;
+                    this.markerRef = null;
                 }
                 // distance to current location
                 setDist(dist) {
@@ -206,8 +243,8 @@
             const vcc = createMarker(vcc_b.imgSrc,
                 -123.38619508440203, 48.43005130786145, vcc_b);
             // Get info of the marker
-            markerList.push(vcc.getLngLat());
-            nameList.push(vcc_b.name);
+            vcc_b.markerRef = vcc;
+
             //------
 
             // Big Wheel Burger
@@ -225,8 +262,7 @@
             const bwg = createMarker(bwb_b.imgSrc,
                 -123.38085452996481, 48.432426309628234, bwb_b);
             // Get info of the marker
-            markerList.push(bwg.getLngLat());
-            nameList.push(bwb_b.name);
+            bwb_b.markerRef = bwg;
 
             //------
 
@@ -237,13 +273,18 @@
                 alternativeExit: '',
                 imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vag_marker1.png'
             });
+
+            // Set opening and closing hours for bwb
+            vag_b.setOpeningHours('10:00', '00:00', '10:00', '10:00', '10:00', '10:00', '10:00');
+            vag_b.setClosingHours('17:00', '17:00', '17:00', '17:00', '20:00', '17:00', '17:00');
+
             const vag = createMarker(vag_b.imgSrc,
                 -123.12060576585512, 49.28302361456653, vag_b);
             // Get info of the marker
-            markerList.push(vag.getLngLat());
-            nameList.push(vag_b.name);
+            vag_b.markerRef = vag;
 
             //------
+            cleanMarkers();
 
             // Hilton Hotel
             const hil_b = new Business({
@@ -255,8 +296,7 @@
             const hil = createMarker(hil_b.imgSrc,
                 -123.11700532742789, 49.27995983925699, hil_b);
             // Get info of the marker
-            markerList.push(hil.getLngLat());
-            nameList.push(hil_b.name);
+            hil_b.markerRef = hil;
 
             //------
 
@@ -270,10 +310,25 @@
             const scy = createMarker(scy_b.imgSrc,
                 -123.11804358002048, 49.278864165446805, scy_b);
             // Get info of the marker
-            markerList.push(scy.getLngLat());
-            nameList.push(scy_b.name);
+            scy_b.markerRef = scy;
+
 
         }
+
+        // Remove the closed ones and refresh the marker list and name list accordingly
+        function cleanMarkers() {
+            //Add to available list, and remove from map if closed
+            businessList.forEach(bus => {
+                if (!bus.isClosed) {
+                    markerList.push(bus.markerRef.getLngLat());
+                    nameList.push(bus.name);
+                }
+                else {
+                    bus.markerRef.remove();
+                }
+            });
+        }
+
 
         function createMarker(url, lng, lat, bus) {
             // Check if Business is open first
@@ -295,11 +350,10 @@
             const closingMinutes = (closeHours * 60) + closeMinutes;
 
             // 3. Directly compare the numbers
-            // if (currentMinutes < openingMinutes || currentMinutes >= closingMinutes) {
-            //     // if Close, don't show marker
-            //     //TODO: Offer an alternative.. For now just skip
-            //     return;
-            // }
+            if (currentMinutes < openingMinutes || currentMinutes >= closingMinutes) {
+                // if Close, don't show marker
+                bus.isClosed = true;
+            }
 
 
             const markerAnchor = document.createElement('div');
@@ -328,6 +382,9 @@
 
             });
 
+            // Only show the marker if the business is open, if it's closed,
+            //we can choose to not show it or show it with a different style.
+            //For now we just won't show it.
             const mk = new mapboxgl.Marker({ element: markerAnchor, anchor: 'center', offset: [0, 0] })
                 .setLngLat([lng, lat])
                 .addTo(map);
@@ -729,7 +786,7 @@
         //     }, 250);
         // }
 
-        function getDistanceToBusiness(busName, dist) {
+        function setDistanceToBusiness(busName, dist) {
             const bus = businessList.find(b => b.name === busName);
             if (!bus) {
                 return null;
@@ -774,7 +831,12 @@
 
                     const dist = document.createElement('div');
                     dist.className = 'bus-dist';
-                    dist.textContent = bus.dist + ' km';
+                    if (!bus.dist) {
+                        dist.textContent = "Closed"
+                    }
+                    else {
+                        dist.textContent = bus.dist + ' km';
+                    }
 
                     const lineImg = document.createElement('img');
                     lineImg.className = 'bus-line';
@@ -816,10 +878,12 @@
 
 
         function getMarkerList() {
+            //if (typeof markerList === 'undefined' || !markerList) { alert('It is Empty'); return ''; }
             return JSON.stringify(markerList);
         }
 
         function getNameList() {
+            //if (typeof nameList === 'undefined' || !nameList) { return ''; }
             return JSON.stringify(nameList);
         }
 
@@ -861,7 +925,7 @@
                 background-color: #FFA500;
                 width: 90px;
                 height: 40px;
-            /*Always goes to the top left corner 20px from top and 20 from left*/
+                /*Always goes to the top left corner 20px from top and 20 from left*/
                 top: 20px;
                 left: 20px;
                 transform-origin: top left;
@@ -1135,6 +1199,30 @@
         .map-icon {
             width: 25px;
             height: 25px;
+            border-radius: 4px;
+        }
+
+        .relocPanel {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 10%;
+            background-color: rgba(65, 105, 225, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            left: 5%;
+            bottom: 10%;
+            color: white;
+            z-index: 1000;
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(8px);
+            object-fit: cover;
+        }
+
+        .reloc-icon {
+            width: 90%;
+            height: 90%;
             border-radius: 4px;
         }
     </style>

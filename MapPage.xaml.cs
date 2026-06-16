@@ -41,7 +41,6 @@ public partial class MapPage : ContentPage
         set
         {
             _city = Uri.UnescapeDataString(value ?? string.Empty);
-            //UpdateCityDisplay();
         }
     }
 
@@ -81,6 +80,7 @@ public partial class MapPage : ContentPage
                 //Get the proper business from the name
                 var pBus = businessDict.FirstOrDefault(b => b.Name == businessName);
 
+                if (pBus == null) { throw new Exception($"No business found in the dictionnary with the name: {businessName}"); }
                 GetDirectionsToBusiness(pBus);
             }
         }
@@ -119,6 +119,30 @@ public partial class MapPage : ContentPage
         var pVisibleMarkers = await MapView.EvaluateJavaScriptAsync("getMarkerList()");
         var pNames = await MapView.EvaluateJavaScriptAsync("getNameList()");
 
+        // Helper function to identify empty JS arrays or null responses
+        bool IsJsArrayEmpty(string jsResult) =>
+            string.IsNullOrWhiteSpace(jsResult) || jsResult == "[]" || jsResult == "null";
+
+        // Intercept the failure state immediately
+        if (IsJsArrayEmpty(pVisibleMarkers) || IsJsArrayEmpty(pNames))
+        {
+            SafePlacesAround.Text = $"Uh-oh, no safe places close to you right now." +
+                $"Make sure you let your close friends know where you are!";
+
+            SafePlacesAround.IsVisible = true;
+
+            // Change button function to send alert to friends
+            GoToClosestLocBtn.Text = "Send quick msg to friends";
+            GoToClosestLocBtn.Clicked += SendAlertToFriends;
+            GoToClosestLocBtn.IsVisible = true;
+
+            TitleLabel.Text = "Stay Vigilant!";
+            TitleLabel.IsVisible = true;
+            return;
+        }
+
+
+
         var pNameList = pNames.Split('"');
         var pGenNameList = new List<string>();
         foreach (var name in pNameList)
@@ -126,7 +150,6 @@ public partial class MapPage : ContentPage
             if (!name.Any(char.IsAsciiLetter)) { continue; }
             pGenNameList.Add(name.Trim('\\', ',', '[', ']', '}'));
         }
-
         // Iterate through all the businesses and get their infos
         var pMarLists = pVisibleMarkers.Split(',');
         int busIndex = 0;
@@ -134,6 +157,7 @@ public partial class MapPage : ContentPage
         bool instantiateNewBusiness = false;
         foreach (var pMarker in pMarLists)
         {
+            Debug.WriteLine($"[TAP] What marker we have: {pMarker}");
             bool isLng = false;
             bool isLat = false;
             if (instantiateNewBusiness)
@@ -230,6 +254,8 @@ public partial class MapPage : ContentPage
 
     }
 
+    // Get the information of the closest locations and display it,
+    // also save the closest location for later use when navigating
     void GetClosestLocation(double _north, double _south, double _east, double _west)
     {
         //Debug.WriteLine($"{_north}, south: {_south}, East {_east}, west {_west}");
@@ -256,8 +282,36 @@ public partial class MapPage : ContentPage
         Debug.WriteLine($"Closest business: {pClosestBusiness?.Name}");
 
         closestLoc = pClosestBusiness;
-        // Display closest
-        SafePlacesAround.Text = $"You have {visibleBusinesses.Count}  safe places around you." +
+        // Display info
+        // If no places around
+        if (visibleBusinesses.Count <= 0)
+        {
+            var pCloseLoc = businessDict.MinBy(b => currentLoc.CalculateDistance(new Location(b.Lat, b.Lng), DistanceUnits.Kilometers));
+            if (pCloseLoc != null)
+            {
+                var pActDist = currentLoc.CalculateDistance(new Location(pCloseLoc.Lat, pCloseLoc.Lng), DistanceUnits.Kilometers);
+                SafePlacesAround.Text = $"Uh-oh, the closest one is {pCloseLoc.Name} at: {pActDist.ToString("##.#")} km." +
+                    $"\nZoom out to see all your options." +
+                $"\nMake sure you let your close friends know where you are!";
+            }
+            else
+            {
+                SafePlacesAround.Text = $"Uh-oh, no safe places close to you right now." +
+                    $"Make sure you let your close friends know where you are!";
+            }
+
+            SafePlacesAround.IsVisible = true;
+
+            // Change button function to send alert to friends
+            GoToClosestLocBtn.Text = "Send quick msg to friends";
+            GoToClosestLocBtn.Clicked += SendAlertToFriends;
+            GoToClosestLocBtn.IsVisible = true;
+
+            TitleLabel.Text = "Stay Vigilant!";
+            TitleLabel.IsVisible = true;
+            return;
+        }
+        SafePlacesAround.Text = $"You have {visibleBusinesses.Count} safe places around you." +
             $" \nThe closest one is {pClosestBusiness?.Name}";
 
         TitleLabel.Text = $"You're only {((pDist * 1000) / 1.8f /*Average walking speed*/
@@ -272,7 +326,7 @@ public partial class MapPage : ContentPage
     async Task GoToLocation()
     {
         // Get my position      // COMMENTED FOR TESTING PURPOSES, UNCOMMENT WHEN TESTING ON DEVICE
-        //currentLoc = new Location(48.43114761028363, -123.39322136294639);     // Vancouver's coordinates for testing purposes
+        //currentLoc = new Location(48.43001925275716, -123.41092919016779);     // Vancouver's coordinates for testing purposes
         var _currentLoc = await Geolocation.GetLocationAsync(
             new GeolocationRequest
             {
@@ -317,12 +371,10 @@ public partial class MapPage : ContentPage
     private async Task StartLocationTracking()
     {
         // Start tracking the user's location and update the map accordingly
-        int index = 0;
         var request = new GeolocationRequest(GeolocationAccuracy.High, TimeSpan.FromSeconds(2));
         Location previousLoc = currentLoc;
         while (true)
         {
-            index++;
             var location = await Geolocation.GetLocationAsync(request);
             if (location != null)
             {
@@ -357,13 +409,6 @@ public partial class MapPage : ContentPage
         base.OnAppearing();
         //UpdateCityDisplay();
     }
-
-    //void UpdateCityDisplay()
-    //{
-    //    var displayCity = string.IsNullOrWhiteSpace(_city) ? "Your area" : _city;
-    //    CityTitleLabel.Text = displayCity;
-    //    Title = displayCity;
-    //}
 
     /// <summary>
     /// Draws the route to the closest safe place
@@ -475,7 +520,7 @@ public partial class MapPage : ContentPage
             var busLoc = new Location(pBus.Lat, pBus.Lng);
             var pDist = currentLoc.CalculateDistance(busLoc, DistanceUnits.Kilometers);
             //var pProperDist = pDist < 1 ? pDist : pDist * 1000;   if we want to show in meters when it's less than 1 km
-            await MapView.EvaluateJavaScriptAsync($"getDistanceToBusiness('{pBus.Name}','{(pDist).ToString("##.#")}')");
+            await MapView.EvaluateJavaScriptAsync($"setDistanceToBusiness('{pBus.Name}','{(pDist).ToString("##.#")}')");
         }
 
         await MapView.EvaluateJavaScriptAsync($"displayFullList()");
@@ -577,5 +622,10 @@ public partial class MapPage : ContentPage
     private void AutomaticActivationBoxClicked(object? sender, TappedEventArgs e)
     {
         ActivateAutomaticallyCheckmark.IsVisible = !ActivateAutomaticallyCheckmark.IsVisible;
+    }
+
+    private void SendAlertToFriends(object? sender, EventArgs e)
+    {
+
     }
 }
