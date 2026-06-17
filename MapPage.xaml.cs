@@ -20,10 +20,41 @@ public partial class MapPage : ContentPage
         public string Instruction { get; set; } = string.Empty;
         public string Distance { get; set; } = string.Empty;
     }
+
+    public class FriendInfo
+    {
+        private bool _isCloseFriend;
+        private string starImgSource = "star.png";
+        public string Name { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string UniqueId { get; set; } = string.Empty;
+        public string StarImgSource { get => starImgSource; set => starImgSource = value;}
+        public bool isCloseFriend 
+        {
+            get => _isCloseFriend;
+            set
+            {
+                if (value)
+                {
+                    _isCloseFriend = value;
+                    // change star to yellow
+                    starImgSource = "staryellow.png"; // Change to yellow star image
+                }
+                else
+                {
+                    _isCloseFriend = false;
+                    starImgSource = "star.png"; // Change back to default star image
+                }
+            }
+        }
+
+    }
+
     // TODO: Hide the token key in production, this is just for testing purposes
     string Token = "pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g";
 
     public ObservableCollection<RouteStep> RouteSteps { get; set; } = new ObservableCollection<RouteStep>();
+    public ObservableCollection<FriendInfo> FriendsListCollection { get; set; } = new ObservableCollection<FriendInfo>();
     string _city = string.Empty;
     List<LocationMarkers> businessDict = new List<LocationMarkers>();
     Location currentLoc;
@@ -31,7 +62,6 @@ public partial class MapPage : ContentPage
     LocationMarkers closestLoc;
 
     LocationMarkers navigatingBusiness;     // the business that the user is currently navigating to, used to update the directions
-    bool isNavigatingToBus = false;     // whether the user is currently navigating to a business, used to update the directions if the user's location changes significantly
 
 
     public bool IsAlone { get; set; }
@@ -127,7 +157,7 @@ public partial class MapPage : ContentPage
         if (IsJsArrayEmpty(pVisibleMarkers) || IsJsArrayEmpty(pNames))
         {
             SafePlacesAround.Text = $"Uh-oh, no safe places close to you right now." +
-                $"Make sure you let your close friends know where you are!";
+                $"\nMake sure you let your close friends know where you are!";
 
             SafePlacesAround.IsVisible = true;
 
@@ -297,7 +327,7 @@ public partial class MapPage : ContentPage
             else
             {
                 SafePlacesAround.Text = $"Uh-oh, no safe places close to you right now." +
-                    $"Make sure you let your close friends know where you are!";
+                    $"\nMake sure you let your close friends know where you are!";
             }
 
             SafePlacesAround.IsVisible = true;
@@ -365,7 +395,7 @@ public partial class MapPage : ContentPage
         await LoadAllMarkers();
 
         // don't await it beucase it'll stall
-        //StartLocationTracking();
+        StartLocationTracking();
     }
 
     private async Task StartLocationTracking()
@@ -439,7 +469,6 @@ public partial class MapPage : ContentPage
     /// <param name="url">URL containing the parameters of the itinerary</param>
     async void GetDirections(string url, string _busName)
     {
-        isNavigatingToBus = true;
         FreeRoamGrid.IsVisible = false;
         ItineraryGrid.IsVisible = true;
         HttpClient client = new();
@@ -486,7 +515,6 @@ public partial class MapPage : ContentPage
 
     private async void GoBackFromItinerary(object? sender, EventArgs e)
     {
-        isNavigatingToBus = false;
         FreeRoamGrid.IsVisible = true;
         ItineraryGrid.IsVisible = false;
 
@@ -529,7 +557,7 @@ public partial class MapPage : ContentPage
     private void FriendTabClicked(object? sender, TappedEventArgs e)
     {
         // Show a list of friends
-        Debug.WriteLine($"[TAP] Clicked On Friend Tab");
+        FriendsMenu.IsVisible = !FriendsMenu.IsVisible;
     }
 
     private void GroupTabClicked(object? sender, TappedEventArgs e)
@@ -627,5 +655,42 @@ public partial class MapPage : ContentPage
     private void SendAlertToFriends(object? sender, EventArgs e)
     {
 
+    }
+
+    // Triggered when clicking on the "Add Friend" button in the friends menu
+    private void AddFriendMenu(object? sender, TappedEventArgs e)
+    {
+        AddFriendMenuBorder.IsVisible = true;
+        // reset entries
+        FriendIDEntry.Text = "";    
+        CloseFriendSwitch.IsToggled = false;
+    }
+
+    private void AlertSpecificFriend(object? sender, TappedEventArgs e)
+    {
+        if (e.Parameter != null)
+            Debug.WriteLine($"[TAP] Alerting specific friend with ID: {e.Parameter.ToString()}");
+    }
+
+    private void OnCompletedAddFriendForm(object? sender, EventArgs e)
+    {
+        //FriendsListCollection.Add(new FriendInfo
+        //{
+        //    Name = "Raj",
+        //    DisplayName = "TheNepaleseKing",
+        //    UniqueId = "Rpk1", // Find a good way to generate a unique friendID
+        //    isCloseFriend = true
+        //});
+        var uID = FriendIDEntry.Text;
+        var pCloseFriend = CloseFriendSwitch.IsToggled;
+        FriendsListCollection.Add(new FriendInfo
+        {
+            Name = $"{uID}",
+            DisplayName = "No Display Name",
+            UniqueId = uID, // Find a good way to generate a unique friendID
+            isCloseFriend = pCloseFriend
+        });
+
+        AddFriendMenuBorder.IsVisible = false;
     }
 }

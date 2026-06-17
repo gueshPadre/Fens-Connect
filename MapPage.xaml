@@ -190,11 +190,11 @@
             Grid.Row="1">
             <Grid
                 RowDefinitions="*,Auto">
-                
-            <VerticalStackLayout
+
+                <VerticalStackLayout
                 Grid.Row="1">
 
-                <Label
+                    <Label
                     x:Name="LoadingText"
                     Text="Loading Map..."
                     IsVisible="False"
@@ -203,16 +203,16 @@
                     HeightRequest="40"
                     WidthRequest="100"
                     TextColor="Black">
-                </Label>
-                <Image
+                    </Label>
+                    <Image
                     x:Name="LoadingImage"
                     IsVisible="False"
                     HorizontalOptions="Center"
                     VerticalOptions="Center"
                     HeightRequest="70"
                     Source="proper_logo_transparent.png">
-                </Image>
-            </VerticalStackLayout>
+                    </Image>
+                </VerticalStackLayout>
             </Grid>
         </Grid>
 
@@ -703,6 +703,187 @@
                     <TapGestureRecognizer Tapped="OnCloseClicked" />
                 </BoxView.GestureRecognizers>
             </BoxView>
+        </Grid>
+
+        <!--FRIEND POPUP-->
+        <Grid 
+            x:Name="FriendsMenu" 
+            IsVisible="False"
+            Grid.Row="0"
+            Grid.RowSpan="4"
+            WidthRequest="300"
+            HeightRequest="600">
+            <Border
+                x:Name="FriendsListBorder"
+                BackgroundColor= "GhostWhite"
+                StrokeShape="RoundRectangle 40">
+
+                <Grid
+                    RowDefinitions="Auto, *">
+                    <HorizontalStackLayout
+                        Padding="0,30,0,0"
+                        HorizontalOptions="Center"
+                        Spacing="10">
+                        <Label
+                        Text="Friends"
+                        TextColor="Black"
+                        FontSize="30"
+                        FontAttributes="Bold"/>
+                        <Border
+                            WidthRequest="30"
+                            HeightRequest="30"
+                            StrokeThickness="0"
+                            BackgroundColor="Transparent">
+
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="AddFriendMenu" />
+                            </Border.GestureRecognizers>
+
+                            <Image                         
+                                Source="addfrndsign.png"
+                                Aspect="AspectFit"
+                                WidthRequest="30"
+                                HeightRequest="30">
+                            </Image>
+                        </Border>
+                    </HorizontalStackLayout>
+                    <CollectionView
+                        Grid.Row="1"
+                        ItemsSource="{Binding FriendsListCollection}"
+                        VerticalScrollBarVisibility="Always">
+
+                        <CollectionView.ItemTemplate>
+
+                            <DataTemplate>
+
+                                <VerticalStackLayout
+                                    Spacing="5">
+                                    <Grid
+                                        Padding="10,30,10,0"
+                                        RowDefinitions="Auto,*"
+                                        ColumnDefinitions="Auto,*,Auto">
+                                        <Image
+                                            WidthRequest="25"
+                                            HeightRequest="25"
+                                            Grid.RowSpan="2"
+                                            Source="addtogrp.png"
+                                            x:Name="InviteToGrpImg"/>
+                                        <HorizontalStackLayout
+                                            Grid.Column="1"
+                                            HorizontalOptions="Center"
+                                            Spacing="5">
+                                            <Label
+                                                Grid.Row="0"
+                                                Text="{Binding Name}"
+                                                FontAttributes="Bold"
+                                                TextColor="Black"
+                                                FontSize="23"/>
+                                            <Image
+                                                Grid.Column="1"
+                                                WidthRequest="20"
+                                                HeightRequest="20"
+                                                Source="{Binding StarImgSource}"/>
+                                        </HorizontalStackLayout>
+                                        <Label
+                                            Grid.Column="1"
+                                            Grid.Row="1"
+                                            Text="{Binding DisplayName}"
+                                            HorizontalOptions="Center"
+                                            TextColor="Black"
+                                            FontSize="12"/>
+                                        <Image
+                                            Grid.Column="2"
+                                            WidthRequest="30"
+                                            HeightRequest="30"
+                                            Grid.RowSpan="2"
+                                            Source="alertfriends2.png">
+
+                                            <Image.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="AlertSpecificFriend"
+                                                                      CommandParameter="{Binding UniqueId}"/>
+                                            </Image.GestureRecognizers>
+
+                                        </Image>
+
+
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </DataTemplate>
+
+                        </CollectionView.ItemTemplate>
+
+                    </CollectionView>
+
+                    <Border
+                        x:Name="AddFriendMenuBorder"
+                        Grid.RowSpan="2"
+                        BackgroundColor ="FloralWhite"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        StrokeShape="RoundRectangle 12"
+                        IsVisible="False"
+                        WidthRequest="250"
+                        HeightRequest="400">
+                        <Grid
+                            RowDefinitions="Auto,*,*,Auto"
+                            RowSpacing="5">
+                            <Label
+                            x:Name="AddFriendTitle"
+                            Text="Add a friend!"
+                            FontAttributes="Bold"
+                            HorizontalTextAlignment="Center"
+                            VerticalTextAlignment="Center"
+                            FontSize="20"
+                            TextColor="Black"
+                            Padding="20"/>
+                            <Entry
+                                x:Name="FriendIDEntry"
+                                Grid.Row="1"
+                                FontSize="18"
+                                TextColor="Black"
+                                Placeholder="MyFriendID99"
+                                PlaceholderColor="Black"
+                                BackgroundColor="LightGray"
+                                HorizontalTextAlignment="Center"
+                                HeightRequest="60"
+                                WidthRequest="200"/>
+                            <HorizontalStackLayout
+                                Grid.Row="2"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center"
+                                Spacing="20">
+                                <Label
+                                    Text="Is a close friend?"
+                                    FontSize="15"
+                                    TextColor="Black"/>
+                                <Switch
+                                    x:Name="CloseFriendSwitch"
+                                    HeightRequest="10"
+                                    BackgroundColor="Transparent"
+                                    OffColor="OrangeRed"
+                                    OnColor="#3ab54a"
+                                    ThumbColor="Black"/>
+                            </HorizontalStackLayout>
+                            <Button
+                                Grid.Row="3"
+                                x:Name="AddFriendConfirmBtn"
+                                Text="Add Friend"
+                                FontSize="18"
+                                WidthRequest="150"
+                                HeightRequest="30"
+                                Margin="0,0,0,30"
+                                Clicked="OnCompletedAddFriendForm"
+                                BackgroundColor="#3ab54a"/>
+
+                        </Grid>
+                    </Border>
+                </Grid>
+
+            </Border>
+
+
+
+
         </Grid>
 
     </Grid>
