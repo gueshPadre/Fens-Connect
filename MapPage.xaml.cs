@@ -309,7 +309,8 @@ public partial class MapPage : ContentPage
             return pDist;
         }).FirstOrDefault();
 
-        Debug.WriteLine($"Closest business: {pClosestBusiness?.Name}");
+        
+        //Debug.WriteLine($"Closest business: {pClosestBusiness?.Name} and dist: {}");
 
         closestLoc = pClosestBusiness;
         // Display info
@@ -344,8 +345,10 @@ public partial class MapPage : ContentPage
         SafePlacesAround.Text = $"You have {visibleBusinesses.Count} safe places around you." +
             $" \nThe closest one is {pClosestBusiness?.Name}";
 
-        TitleLabel.Text = $"You're only {((pDist * 1000) / 1.8f /*Average walking speed*/
-            / 60 /*to show in minutes*/).ToString("##")} min from safety";
+        var busLoc = new Location(pClosestBusiness.Lat, pClosestBusiness.Lng);
+        var pClosestDist = (currentLoc.CalculateDistance(busLoc, DistanceUnits.Kilometers)) * 1000f / 1.8f / 60;
+        // Average walking speed shown in minutes
+        TitleLabel.Text = $"You're only {pClosestDist.ToString("##")} min from safety";
         TitleLabel.IsVisible = true;
         SafePlacesAround.IsVisible = true;
         GoToClosestLocBtn.IsVisible = true;
@@ -508,8 +511,9 @@ public partial class MapPage : ContentPage
         DirectionsBusinessName.IsVisible = true;
 
         string geoJson = geometry.ToString();
+        string stepJson = JsonSerializer.Serialize(RouteSteps);
 
-        await MapView.EvaluateJavaScriptAsync($"drawRoute('{geoJson}')");
+        await MapView.EvaluateJavaScriptAsync($"drawRoute('{geoJson}', '{stepJson}')");
     }
 
 

@@ -233,14 +233,14 @@
                 name: 'Victoria Cannabis Company',
                 safeword: 'bonkers',
                 alternativeExit: 'Yes',
-                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vcc_marker1.png'
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vcc_star.png'
             });
 
             // Set opening and closing hours for VCC
             vcc_b.setOpeningHours('09:00', '09:00', '09:00', '09:00', '09:00', '09:00', '09:00');
             vcc_b.setClosingHours('23:00', '23:00', '23:00', '23:00', '23:00', '23:00', '23:00');
 
-            const vcc = createMarker(vcc_b.imgSrc,
+            const vcc = createMarker(
                 -123.38619508440203, 48.43005130786145, vcc_b);
             // Get info of the marker
             vcc_b.markerRef = vcc;
@@ -252,17 +252,36 @@
                 name: 'Big Wheel Burger',
                 safeword: 'Duck Burger',
                 alternativeExit: 'Yes',
-                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/bwb_marker1.png'
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/bwb_star.png'
             });
 
             // Set opening and closing hours for bwb
             bwb_b.setOpeningHours('11:00', '11:00', '11:00', '11:00', '11:00', '11:00', '11:00');
             bwb_b.setClosingHours('21:00', '21:00', '21:00', '21:00', '21:00', '21:00', '21:00');
 
-            const bwg = createMarker(bwb_b.imgSrc,
+            const bwg = createMarker(
                 -123.38085452996481, 48.432426309628234, bwb_b);
             // Get info of the marker
             bwb_b.markerRef = bwg;
+
+            //------
+
+            // Baan Thai Wok Blanshard
+            const btw_b = new Business({
+                name: 'Baan Thai Blanshard',
+                safeword: 'Thai Papa',
+                alternativeExit: 'Yes',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/BTWstarOutline.png'
+            });
+
+            // Set opening and closing hours for btw
+            btw_b.setOpeningHours('11:00', '11:00', '11:00', '11:00', '11:00', '11:00', '11:00');
+            btw_b.setClosingHours('23:00', '23:00', '23:00', '23:00', '23:00', '23:00', '23:00');
+
+            const btw = createMarker(
+                -123.36213254907534, 48.42484591493667, btw_b);
+            // Get info of the marker
+            btw_b.markerRef = btw;
 
             //------
 
@@ -271,14 +290,14 @@
                 name: 'Vancouver Art Gallery',
                 safeword: '',
                 alternativeExit: '',
-                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vag_marker1.png'
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/vag_star.png'
             });
 
-            // Set opening and closing hours for bwb
+            // Set opening and closing hours for vag
             vag_b.setOpeningHours('10:00', '10:00', '10:00', '10:00', '10:00', '10:00', '10:00');
             vag_b.setClosingHours('17:00', '17:00', '17:00', '17:00', '20:00', '17:00', '17:00');
 
-            const vag = createMarker(vag_b.imgSrc,
+            const vag = createMarker(
                 -123.12060576585512, 49.28302361456653, vag_b);
             // Get info of the marker
             vag_b.markerRef = vag;
@@ -293,7 +312,7 @@
                 alternativeExit: '',
                 imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/hilton_marker1.png'
             });
-            const hil = createMarker(hil_b.imgSrc,
+            const hil = createMarker(
                 -123.11700532742789, 49.27995983925699, hil_b);
             // Get info of the marker
             hil_b.markerRef = hil;
@@ -307,7 +326,7 @@
                 alternativeExit: '',
                 imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/scy_marker1.png'
             });
-            const scy = createMarker(scy_b.imgSrc,
+            const scy = createMarker(
                 -123.11804358002048, 49.278864165446805, scy_b);
             // Get info of the marker
             scy_b.markerRef = scy;
@@ -330,7 +349,7 @@
         }
 
 
-        function createMarker(url, lng, lat, bus) {
+        function createMarker(lng, lat, bus) {
             // Check if Business is open first
 
             // 1. Get current time in minutes since midnight
@@ -352,7 +371,7 @@
             // 3. Directly compare the numbers
             if (currentMinutes < openingMinutes || currentMinutes >= closingMinutes) {
                 // if Close, don't show marker
-                bus.isClosed = true;
+                //bus.isClosed = true;
             }
 
 
@@ -364,7 +383,7 @@
 
             const logoImg = document.createElement('img');
             logoImg.className = 'marker-logo';
-            logoImg.src = url;
+            logoImg.src = bus.imgSrc;
             logoImg.alt = bus && bus.name ? `${bus.name} marker` : 'Business marker';
 
             const arrowImg = document.createElement('img');
@@ -475,8 +494,6 @@
 
 
         function writeNoteForAlert() {
-
-
             const popup = document.createElement('div');
             popup.id = 'sketchyAlertPopup';
             popup.classList.add('sketchyAlert-Popup');
@@ -563,8 +580,11 @@
             return closeButton;
         }
 
-
-        function drawRoute(routeGeoJson) {
+        let stepIndex = 0;
+        let touchStartX = 0;
+        let touchEndX = 0;
+        const minSwipeDistance = 50; // Minimum distance in pixels to count as a swipe
+        function drawRoute(routeGeoJson, stepJson) {
             routeGeoJson = JSON.parse(routeGeoJson);
             map.getSource('routes').setData({
                 type: 'FeatureCollection',
@@ -577,7 +597,142 @@
                     }
                 ]
             });
+
+            // Zoom to route
+            const bounds = new mapboxgl.LngLatBounds();
+
+            routeGeoJson.coordinates.forEach(coor => {
+                bounds.extend(coor);
+            });
+
+            map.fitBounds(bounds, {
+                padding: 50,
+                maxZoomg: 17,
+                duration: 1500
+            });
+
+            // Show steps as bottom popup
+
+            // if there are any.. remove it first.
+            const oldSteps = document.getElementById('dirStepsPanel');
+            if (oldSteps != null) {
+                oldSteps.remove();
+            }
+            stepIndex = 0;
+
+            const dirStepsPanel = document.createElement('div');
+            dirStepsPanel.id = 'dirStepsPanel';
+            dirStepsPanel.classList.add('dirStepsPanel');
+
+            const stepsText = document.createElement('p');
+            stepsText.id = 'stepsText';
+            stepsText.className = 'stepsText';
+
+            const leftArrow = document.createElement('img');
+            leftArrow.id = 'leftArrowBack';
+            leftArrow.className = 'leftArrowBack';
+            leftArrow.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/leftArrow.png';
+
+            leftArrow.onclick = () => {
+                goToPrevStep(stepJson);
+            };
+
+            const rightArrow = document.createElement('img');
+            rightArrow.id = 'rightArrowForward';
+            rightArrow.className = 'rightArrowForward';
+            rightArrow.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/rightArrow.png';
+
+            rightArrow.onclick = () => {
+                goToNextStep(stepJson);
+            };
+
+            // Record where the finger first touches the screen
+            dirStepsPanel.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            // Record where the finger leaves the screen and calculate direction
+            dirStepsPanel.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe(stepJson);
+            }, { passive: true });
+
+            stepJson = JSON.parse(stepJson);
+
+            stepsText.innerHTML = stepJson[stepIndex].Instruction + '<br>'
+                + stepJson[stepIndex].Distance;
+            leftArrow.hidden = true;
+
+            dirStepsPanel.appendChild(leftArrow);
+            dirStepsPanel.appendChild(rightArrow);
+            dirStepsPanel.appendChild(stepsText);
+            document.body.appendChild(dirStepsPanel);
         }
+
+        function handleSwipe(stepJson) {
+            const swipeDistance = touchEndX - touchStartX;
+
+            // Check if the swipe was long enough to prevent accidental nudges
+            if (Math.abs(swipeDistance) < minSwipeDistance) {
+                return;
+            }
+
+            if (swipeDistance < 0) {
+                // Swiped Left -> Go Forward
+                goToNextStep(stepJson);
+            } else {
+                // Swiped Right -> Go Backward
+                goToPrevStep(stepJson);
+            }
+        }
+
+        function goToPrevStep(stepJson) {
+            const leftArrow = document.getElementById('leftArrowBack');
+            const rightArrow = document.getElementById('rightArrowForward');
+            if (stepIndex > 0) {
+                rightArrow.hidden = false;
+                stepIndex--;
+                UpdateStepInfo(stepJson);
+
+                if (stepIndex == 0) { // turn arrow off on first instruction
+                    leftArrow.hidden = true;
+                }
+            }
+            else {
+                leftArrow.hidden = true;
+            }
+        }
+
+        function goToNextStep(stepJson) {
+            const rightArrow = document.getElementById('rightArrowForward');
+            const leftArrow = document.getElementById('leftArrowBack');
+            const length = stepJson.length;
+            if (stepIndex < length - 1) {
+                leftArrow.hidden = false;
+                stepIndex++;
+                UpdateStepInfo(stepJson);
+
+                // if we're at the last one, back one so we're at
+                // the right index
+                if (stepIndex == length) {
+                    stepIndex--;
+                }
+                else if (stepIndex == length - 1) {
+                    rightArrow.hidden = true; // turn the arrow off on the last instruction
+                }
+            }
+            else {
+                rightArrow.hidden = true;
+            }
+        }
+
+        function UpdateStepInfo(stepJson) {
+            const panel = document.getElementById('stepsText');
+
+            panel.innerHTML = stepJson[stepIndex].Instruction + '<br>'
+                + stepJson[stepIndex].Distance;
+        }
+
 
         function clearRoute() {
             map.getSource('routes').setData({
@@ -590,6 +745,15 @@
                 popupButton.remove();
             }
             shouldCancel = false;
+
+            // Refocus on userLoc
+            relocateToCurrentLoc();
+
+            // Remove steps
+            const steps = document.getElementById('dirStepsPanel');
+            if (steps != null) {
+                steps.remove();
+            }
 
         }
 
@@ -878,12 +1042,10 @@
 
 
         function getMarkerList() {
-            //if (typeof markerList === 'undefined' || !markerList) { alert('It is Empty'); return ''; }
             return JSON.stringify(markerList);
         }
 
         function getNameList() {
-            //if (typeof nameList === 'undefined' || !nameList) { return ''; }
             return JSON.stringify(nameList);
         }
 
@@ -956,6 +1118,45 @@
             height: 40px;
         }
 
+        .dirStepsPanel {
+            position: fixed;
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #000;
+            justify-content: center;
+            align-content: center;
+            text-align: center;
+            width: 40%;
+            height: 10%;
+            border-radius: 20px;
+            padding: 5px 20px;
+            touch-action: pan-y;
+        }
+
+            .dirStepsPanel .leftArrowBack,
+            .dirStepsPanel .rightArrowForward {
+                position: fixed;
+                top: 50%;
+                height: 50%;
+                width: 15%;
+                transform: translateY(-50%);
+            }
+
+            .dirStepsPanel .leftArrowBack {
+                left: 0;
+            }
+
+            .dirStepsPanel .rightArrowForward {
+                right: 0;
+            }
+
+            .dirStepsPanel .stepsText {
+                font-size: 10px;
+                color: white;
+            }
+
+
         .maximizeButton {
             position: absolute;
             width: 100%;
@@ -978,7 +1179,7 @@
             transform: translateX(-50%);
             display: block;
             width: 40px;
-            height: 37px;
+            height: 40px;
             overflow: visible;
             z-index: 10;
         }
@@ -988,7 +1189,7 @@
                 top: 0;
                 left: 50%;
                 width: 40px;
-                height: 25px;
+                height: 40px;
                 border-radius: 10%;
                 object-fit: cover;
                 transform: translateX(-50%);
@@ -997,7 +1198,7 @@
             .marker-pin .marker-arrow {
                 position: absolute;
                 left: 50%;
-                bottom: 0;
+                bottom: -20%;
                 width: 12px;
                 height: 12px;
                 border-radius: 0;
@@ -1115,11 +1316,11 @@
             }
 
             .busList .bus-logo {
-                width: 16px;
-                height: 16px;
+                width: 25px;
+                height: 25px;
                 border-radius: 4px;
                 flex: 0 0 32px;
-                object-fit: cover;
+                object-fit: scale-down;
             }
 
             .busList .bus-name {
