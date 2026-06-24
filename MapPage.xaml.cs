@@ -11,9 +11,11 @@ public partial class MapPage : ContentPage
     public class UserProfile
     {
         public string DisplayName { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = string.Empty;
+
         public List<FriendInfo> FriendList { get; set; } = new List<FriendInfo>();
 
-        public Location CurrentLocation { get; set; } = new Location();
+        public GeoPoint UserLocation { get; set; } = new GeoPoint();
 
     }
 
@@ -96,7 +98,7 @@ public partial class MapPage : ContentPage
         _db = new F_FirestoreDB();
 
         // HTML maps integration
-        LoadingMap();        
+        LoadingMap();
     }
 
     async void LoadingMap()
@@ -755,13 +757,13 @@ public partial class MapPage : ContentPage
     private async void OpenLoginPopup(object? sender, EventArgs e)
     {
         LoginPopup.IsVisible = true;
-
-
+        LoginOrCreateOption.IsVisible= false;
     }
 
     private async void OpenSignupPopup(object? sender, EventArgs e)
     {
         SignupPopup.IsVisible = true;
+        LoginOrCreateOption.IsVisible= false;
     }
 
 
@@ -773,13 +775,17 @@ public partial class MapPage : ContentPage
             // Execute the simple Firebase request
             string userUid = await _authService.GetEmailPasswordAsync(LoginEmailEntry.Text, LoginPasswordEntry.Text);
 
-            await DisplayAlert("Success", $"Logged in successfully! User ID: {userUid}", "OK");
-            SendSignupErrorMsg("Successful!! ", true);
+
+            var pUser = await _db.RetrieveUserInfo(userUid);
+
+            await DisplayAlertAsync("Success", $"Logged in successfully! User ID: {userUid} and my email: {pUser.UserEmail}", "Got it");
+
+            //SendSignupErrorMsg("Successful!! ", true);
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Login failed: {ex.Message}", "OK");
-            SendSignupErrorMsg("UNSuccessful!! ");
+            await DisplayAlertAsync("Error", $"Login failed: {ex.Message}", "rip");
+            //SendSignupErrorMsg("UNSuccessful!! ");
         }
 
     }
@@ -787,74 +793,47 @@ public partial class MapPage : ContentPage
 
     private async void OnCreateProfileClicked(object? sender, EventArgs e)
     {
-        //bool isValidNumber = true;
-        // Checks to make sure it's valid
         // At least 4 characters for the name
         if (DisplayNameEntry.Text.Length < 4)
         {
-            SendSignupErrorMsg("Name should be at least 4 characters!");
+            await DisplayAlertAsync("Woops!","Name should be at least 4 characters!", "Try again");
             return;
         }
-
-        // At least 3 digits
-        //if (DisplayNumberEntry.Text.Length < 3)
-        //{ SendSignupErrorMsg("There must be at least 3 digits"); isValidNumber = false; }
-        //Only digits
-        //if (!double.TryParse(DisplayNumberEntry.Text, out double res))
-        //{ SendSignupErrorMsg("There should only be digits after the '#'"); isValidNumber = false; }
 
         var pId = await _authService.SetEmailPassword(SignupEmailEntry.Text, SignupPasswordEntry.Text);
         UserProfile pNewProf = new UserProfile()
         {
             DisplayName = DisplayNameEntry.Text,
+            UserEmail = SignupEmailEntry.Text,
+            UserLocation = new GeoPoint(currentLoc.Latitude, currentLoc.Longitude),
+            FriendList = new List<FriendInfo>()
         };
-
 
         await _db.ConnectUserToDb(pId, pNewProf);
 
-        //string pKey = string.Empty;
-        //string pPassw = string.Empty;
-        //if (!isValidName || !isValidNumber) { return; }
+        await DisplayAlertAsync("SUCCESS!","You're in the DB!","Yay");
 
-        //pKey = $"{DisplayNameEntry.Text}#{res}";   // Concatenate both entries to find the unique username
-        //Debug.WriteLine($"[TAP] MY USERNAME: {pKey}");
-        //pPassw = PasswordEntry.Text;
-        //Debug.WriteLine($"[TAP] Password: {pPassw}");
-
-
-        //var accSerialized = JsonSerializer.Serialize(new { Username = pKey, Password = pPassw });
-        //var newProfile = new UserProfile { DisplayName = pKey, FriendList = new List<FriendInfo>() };
-        //newProfile.FriendList.Add(new FriendInfo { Name = "Raj", DisplayName = "TheNepaleseKing", UniqueId = "Rpk1", isCloseFriend = true });
-
-        //var profileSerialized = JsonSerializer.Serialize(newProfile);
-        //await SecureStorage.Default.SetAsync(accSerialized, profileSerialized).ContinueWith(task =>
-        //{
-        //    if (task.IsCompletedSuccessfully)
-        //    {
-        //        Debug.WriteLine($"[SECURE STORAGE] returned Successfully!:");
-        //        LoginOrCreateProfileBorder.IsVisible = false;
-        //        return true;
-        //    }
-        //    else
-        //    {
-        //        Debug.WriteLine($"[SECURE STORAGE] Error storing profile: {task.Exception?.Message}");
-        //        return false;
-        //    }
-        //});
-
-        //// Remove data
-        //SecureStorage.Default.Remove("oauth_token");
+        await Task.Delay(1000);
+        
+        SignupPopup.IsVisible = false;
+        Debug.WriteLine($"[FB] returned Successfully!:");
     }
 
-    void SendSignupErrorMsg(string _msg, bool _isSuccessful = false)
-    {
-        if (!_isSuccessful)
-        {
-            LoginMsgTxt.Text = _msg;
-            Color red = new Color(255, 0, 0);
-            LoginMsgTxt.TextColor = red;
-        }
-    }
+    //void SendSignupErrorMsg(string _msg, bool _isSuccessful = false)
+    //{
+    //    if (!_isSuccessful)
+    //    {
+    //        LoginMsgTxt.Text = _msg;
+    //        Color red = new Color(255, 0, 0);
+    //        LoginMsgTxt.TextColor = red;
+    //    }
+    //    else
+    //    {
+    //        LoginMsgTxt.Text = _msg;
+    //        Color green = new Color(58, 181, 74);
+    //        LoginMsgTxt.TextColor = green;
+    //    }
+    //}
 
     void UpdateAppToProfile(UserProfile _userProf)
     {

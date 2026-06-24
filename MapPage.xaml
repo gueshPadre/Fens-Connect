@@ -909,7 +909,7 @@
             HorizontalOptions="Center"
             VerticalOptions="Center"
             StrokeShape="RoundRectangle 12"
-            IsVisible="True"
+            IsVisible="False"
             WidthRequest="250"
             HeightRequest="150">
 
@@ -1022,6 +1022,13 @@
                             WidthRequest="240"/>
                     </VerticalStackLayout>
 
+                    <Button
+                        Grid.Row="2"
+                    Text="Login"
+                    WidthRequest="80"
+                    FontSize="12"
+                    BackgroundColor="#3ab54a"
+                    Clicked="OnLoginButtonClicked"/>
 
                 </VerticalStackLayout>
 
@@ -1038,7 +1045,7 @@
             HorizontalOptions="Center"
             VerticalOptions="Center"
             StrokeShape="RoundRectangle 12"
-            IsVisible="True"
+            IsVisible="False"
             WidthRequest="250"
             HeightRequest="400">
 
@@ -1120,7 +1127,7 @@
 
 
                 </VerticalStackLayout>
-                    <Button
+                <Button
                         Grid.Row="2"
                     Text="Signup"
                     WidthRequest="80"
