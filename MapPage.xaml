@@ -406,7 +406,14 @@
                     WidthRequest="35"
                     HeightRequest="35"
                     Source="profile.png"
-                    Grid.Column="1"/>
+                    Grid.Column="1">
+
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnProfileClicked"/>
+                        </Image.GestureRecognizers>
+
+
+                    </Image>
                 </Grid>
             </Grid>
 
@@ -691,7 +698,17 @@
                     WidthRequest="35"
                     HeightRequest="35"
                     Source="profile.png"
-                    Grid.Column="1"/>
+                    Grid.Column="1">
+
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnProfileClicked"/>
+                        </Image.GestureRecognizers>
+
+
+                    </Image>
+
+
+
                 </Grid>
             </Grid>
 
@@ -881,10 +898,265 @@
 
             </Border>
 
-
-
-
         </Grid>
+
+        <!--LOGIN OR SIGNUP Option-->
+        <Border
+            x:Name="LoginOrCreateOption"
+            Grid.Row="0"
+            Grid.RowSpan="4"
+            BackgroundColor = "Azure"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            StrokeShape="RoundRectangle 12"
+            IsVisible="True"
+            WidthRequest="250"
+            HeightRequest="150">
+
+            <Grid
+                RowDefinitions="*,*"
+                VerticalOptions="Center"
+                RowSpacing="50">
+                <Label
+                x:Name="LoginMsgTxt"
+                Grid.Row="0"
+                Grid.ColumnSpan="2"
+                Text="Welcome in the community!"
+                FontSize="12"
+                FontAttributes="Bold"
+                HorizontalTextAlignment="Center"
+                TextColor="DarkBlue"/>
+                <HorizontalStackLayout
+                HorizontalOptions="Center"
+                Grid.Row="1"
+                Padding="0,0,0,30"
+                HeightRequest="70"
+                Spacing="15">
+                    <Button
+                    Text="Login"
+                    BackgroundColor="#3ab54a"
+                    WidthRequest="80"
+                    FontSize="12"
+                    Clicked="OpenLoginPopup"/>
+                    <Button
+                    Text="Signup"
+                    WidthRequest="80"
+                    FontSize="12"
+                    BackgroundColor="#3ab54a"
+                    Clicked="OpenSignupPopup"/>
+
+                </HorizontalStackLayout>
+
+            </Grid>
+
+        </Border>
+
+
+
+        <!--LOGIN POPUP-->
+        <Border
+            x:Name="LoginPopup"
+            Grid.Row="0"
+            Grid.RowSpan="4"
+            BackgroundColor = "Azure"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            StrokeShape="RoundRectangle 12"
+            IsVisible="False"
+            WidthRequest="250"
+            HeightRequest="400">
+
+            <Grid
+                RowDefinitions="Auto, *, Auto">
+                <Label
+                    Text="Login!"
+                    FontSize="24"
+                    FontAttributes="Bold,Italic"
+                    HorizontalTextAlignment="Center"
+                    Padding ="10,20,0,0"
+                    TextColor="DarkBlue"/>
+
+                <VerticalStackLayout
+                    Grid.Row="1"
+                    Padding="5,20,0,0"
+                    Spacing="30">
+                    <VerticalStackLayout
+                        Spacing="0">
+                        <Label
+                            Text="Email"
+                            FontSize="18"
+                            TextColor="DarkBlue"/>
+                        <Label
+                            Text="The email you signed up with."
+                            FontSize="8"
+                            LineBreakMode="WordWrap"
+                            TextColor="DarkBlue"/>
+                        <Entry
+                            x:Name="LoginEmailEntry"
+                            FontSize="14"
+                            TextColor="Black"
+                            Background="LemonChiffon"
+                            HorizontalOptions="Start"
+                            WidthRequest="170"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout
+                            Spacing="0">
+                        <Label
+                            Text="Password"
+                            FontSize="18"
+                            TextColor="DarkBlue"/>
+                        <Label
+                            Text="The password you signed up with"
+                            FontSize="8"
+                            LineBreakMode="WordWrap"
+                            TextColor="DarkBlue"/>
+                        <Entry
+                            x:Name="LoginPasswordEntry"
+                            FontSize="16"
+                            TextColor="Black"
+                            Background="LemonChiffon"
+                            HorizontalOptions="Start"
+                            IsPassword="True"
+                            HeightRequest="40"
+                            WidthRequest="240"/>
+                    </VerticalStackLayout>
+
+
+                </VerticalStackLayout>
+
+            </Grid>
+
+        </Border>
+
+        <!--SIGNUP POPUP-->
+        <Border
+            x:Name="SignupPopup"
+            Grid.Row="0"
+            Grid.RowSpan="4"
+            BackgroundColor = "Azure"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            StrokeShape="RoundRectangle 12"
+            IsVisible="True"
+            WidthRequest="250"
+            HeightRequest="400">
+
+            <Grid
+                RowDefinitions="Auto, *, Auto">
+                <Label
+                    Text="Signup!"
+                    FontSize="24"
+                    FontAttributes="Bold,Italic"
+                    HorizontalTextAlignment="Center"
+                    Padding ="10,20,0,0"
+                    TextColor="DarkBlue"/>
+
+                <VerticalStackLayout
+                    Grid.Row="1"
+                    Padding="5,20,0,0"
+                    Spacing="10">
+                    <VerticalStackLayout
+                        Spacing="0">
+                        <Label
+                            Text="Email"
+                            FontSize="18"
+                            TextColor="DarkBlue"/>
+                        <Label
+                            Text="The email you'll use in the app."
+                            FontSize="8"
+                            LineBreakMode="WordWrap"
+                            TextColor="DarkBlue"/>
+                        <Entry
+                            x:Name="SignupEmailEntry"
+                            FontSize="14"
+                            TextColor="Black"
+                            Background="LemonChiffon"
+                            HorizontalOptions="Start"
+                            WidthRequest="170"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout
+                        Spacing="0">
+                        <Label
+                            Text="Display Name"
+                            FontSize="18"
+                            TextColor="DarkBlue"/>
+                        <Label
+                            Text="The name that your friends will see"
+                            FontSize="8"
+                            LineBreakMode="WordWrap"
+                            TextColor="DarkBlue"/>
+                        <Entry
+                            x:Name="DisplayNameEntry"
+                            FontSize="14"
+                            TextColor="Black"
+                            Background="LemonChiffon"
+                            HorizontalOptions="Start"
+                            WidthRequest="170"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout
+                        Spacing="0">
+                        <Label
+                            Text="Password"
+                            FontSize="18"
+                            TextColor="DarkBlue"/>
+                        <Label
+                            Text="The password you signed up with"
+                            FontSize="8"
+                            LineBreakMode="WordWrap"
+                            TextColor="DarkBlue"/>
+                        <Entry
+                            x:Name="SignupPasswordEntry"
+                            FontSize="16"
+                            TextColor="Black"
+                            Background="LemonChiffon"
+                            HorizontalOptions="Start"
+                            IsPassword="True"
+                            HeightRequest="40"
+                            WidthRequest="240"/>
+                    </VerticalStackLayout>
+
+
+                </VerticalStackLayout>
+                    <Button
+                        Grid.Row="2"
+                    Text="Signup"
+                    WidthRequest="80"
+                    FontSize="12"
+                    BackgroundColor="#3ab54a"
+                    Clicked="OnCreateProfileClicked"/>
+
+            </Grid>
+        </Border>
+
+        <Border
+            x:Name="UserProfileInfo"
+            Grid.Row="0"
+            Grid.RowSpan="4"
+            BackgroundColor = "Azure"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            StrokeShape="RoundRectangle 12"
+            IsVisible="False"
+            WidthRequest="250"
+            HeightRequest="400">
+
+            <Label
+                x:Name="ProfileText"
+                FontSize="24"
+                FontAttributes="Bold,Italic"
+                HorizontalTextAlignment="Center"
+                Padding ="10,20,0,0"
+                TextColor="DarkBlue"/>
+
+
+
+
+        </Border>
+
+
 
     </Grid>
 

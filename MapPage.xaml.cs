@@ -1,12 +1,22 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text.Json;
+using Google.Cloud.Firestore;
 
 namespace FENS_Connect;
 
 [QueryProperty(nameof(City), "city")]
 public partial class MapPage : ContentPage
 {
+    public class UserProfile
+    {
+        public string DisplayName { get; set; } = string.Empty;
+        public List<FriendInfo> FriendList { get; set; } = new List<FriendInfo>();
+
+        public Location CurrentLocation { get; set; } = new Location();
+
+    }
+
 
     public class LocationMarkers
     {
@@ -28,8 +38,8 @@ public partial class MapPage : ContentPage
         public string Name { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string UniqueId { get; set; } = string.Empty;
-        public string StarImgSource { get => starImgSource; set => starImgSource = value;}
-        public bool isCloseFriend 
+        public string StarImgSource { get => starImgSource; set => starImgSource = value; }
+        public bool isCloseFriend
         {
             get => _isCloseFriend;
             set
@@ -50,6 +60,9 @@ public partial class MapPage : ContentPage
 
     }
 
+    private readonly IFirebaseAuthService _authService;
+    private F_FirestoreDB _db;
+
     // TODO: Hide the token key in production, this is just for testing purposes
     string Token = "pk.eyJ1IjoiZ3Vlc2giLCJhIjoiY21wZG9sdWFqMGRyYzJ6bzgyOWc3ZmdwMyJ9.mqd_v91FCsLiCVizOxLT9g";
 
@@ -62,6 +75,7 @@ public partial class MapPage : ContentPage
     LocationMarkers closestLoc;
 
     LocationMarkers navigatingBusiness;     // the business that the user is currently navigating to, used to update the directions
+    public static UserProfile CurrentUser { get; private set; }
 
 
     public bool IsAlone { get; set; }
@@ -74,13 +88,15 @@ public partial class MapPage : ContentPage
         }
     }
 
-    public MapPage()
+    public MapPage(IFirebaseAuthService authService)
     {
         InitializeComponent();
         BindingContext = this;
+        _authService = authService;
+        _db = new F_FirestoreDB();
 
         // HTML maps integration
-        LoadingMap();
+        LoadingMap();        
     }
 
     async void LoadingMap()
@@ -187,7 +203,6 @@ public partial class MapPage : ContentPage
         bool instantiateNewBusiness = false;
         foreach (var pMarker in pMarLists)
         {
-            Debug.WriteLine($"[TAP] What marker we have: {pMarker}");
             bool isLng = false;
             bool isLat = false;
             if (instantiateNewBusiness)
@@ -309,7 +324,7 @@ public partial class MapPage : ContentPage
             return pDist;
         }).FirstOrDefault();
 
-        
+
         //Debug.WriteLine($"Closest business: {pClosestBusiness?.Name} and dist: {}");
 
         closestLoc = pClosestBusiness;
@@ -666,7 +681,7 @@ public partial class MapPage : ContentPage
     {
         AddFriendMenuBorder.IsVisible = true;
         // reset entries
-        FriendIDEntry.Text = "";    
+        FriendIDEntry.Text = "";
         CloseFriendSwitch.IsToggled = false;
     }
 
@@ -697,4 +712,160 @@ public partial class MapPage : ContentPage
 
         AddFriendMenuBorder.IsVisible = false;
     }
+
+    private async void OnProfileClicked(object? sender, EventArgs e)
+    {
+        if (CurrentUser == null)
+            LoginOrCreateOption.IsVisible = !LoginOrCreateOption.IsVisible;
+        else
+        {
+            // show logged in User Info
+            LoginOrCreateOption.IsVisible = false;
+            UserProfileInfo.IsVisible = true;
+            ProfileText.Text = $"Weclome {CurrentUser.DisplayName}";
+        }
+    }
+    private async void OnLoginClicked(object? sender, EventArgs e)
+    {
+        string pKey = string.Empty;
+        string pPassw = string.Empty;
+
+        pKey = $"{LoginEmailEntry.Text}";   // Concatenate both entries to find the unique username
+        Debug.WriteLine($"[TAP] MY USERNAME: {pKey}");
+        pPassw = LoginPasswordEntry.Text;
+        Debug.WriteLine($"[TAP] Password: {pPassw}");
+
+        var accSerialized = JsonSerializer.Serialize(new { Username = pKey, Password = pPassw });
+        // Retrieve user data
+        string profile = string.Empty;
+        UserProfile userProf = new UserProfile();
+        if (accSerialized != null || string.IsNullOrEmpty(accSerialized))
+        {
+            profile = await SecureStorage.Default.GetAsync(accSerialized);
+            userProf = JsonSerializer.Deserialize<UserProfile>(profile);
+            Debug.WriteLine($"[SECURE STORAGE] DATA retried Successfully!with friend: {userProf?.FriendList[0].DisplayName}");
+            //LoginOrCreateProfileBorder.IsVisible = false;
+
+            UpdateAppToProfile(userProf);
+            CurrentUser = userProf;
+        }
+
+    }
+
+    private async void OpenLoginPopup(object? sender, EventArgs e)
+    {
+        LoginPopup.IsVisible = true;
+
+
+    }
+
+    private async void OpenSignupPopup(object? sender, EventArgs e)
+    {
+        SignupPopup.IsVisible = true;
+    }
+
+
+
+    private async void OnLoginButtonClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Execute the simple Firebase request
+            string userUid = await _authService.GetEmailPasswordAsync(LoginEmailEntry.Text, LoginPasswordEntry.Text);
+
+            await DisplayAlert("Success", $"Logged in successfully! User ID: {userUid}", "OK");
+            SendSignupErrorMsg("Successful!! ", true);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Login failed: {ex.Message}", "OK");
+            SendSignupErrorMsg("UNSuccessful!! ");
+        }
+
+    }
+
+
+    private async void OnCreateProfileClicked(object? sender, EventArgs e)
+    {
+        //bool isValidNumber = true;
+        // Checks to make sure it's valid
+        // At least 4 characters for the name
+        if (DisplayNameEntry.Text.Length < 4)
+        {
+            SendSignupErrorMsg("Name should be at least 4 characters!");
+            return;
+        }
+
+        // At least 3 digits
+        //if (DisplayNumberEntry.Text.Length < 3)
+        //{ SendSignupErrorMsg("There must be at least 3 digits"); isValidNumber = false; }
+        //Only digits
+        //if (!double.TryParse(DisplayNumberEntry.Text, out double res))
+        //{ SendSignupErrorMsg("There should only be digits after the '#'"); isValidNumber = false; }
+
+        var pId = await _authService.SetEmailPassword(SignupEmailEntry.Text, SignupPasswordEntry.Text);
+        UserProfile pNewProf = new UserProfile()
+        {
+            DisplayName = DisplayNameEntry.Text,
+        };
+
+
+        await _db.ConnectUserToDb(pId, pNewProf);
+
+        //string pKey = string.Empty;
+        //string pPassw = string.Empty;
+        //if (!isValidName || !isValidNumber) { return; }
+
+        //pKey = $"{DisplayNameEntry.Text}#{res}";   // Concatenate both entries to find the unique username
+        //Debug.WriteLine($"[TAP] MY USERNAME: {pKey}");
+        //pPassw = PasswordEntry.Text;
+        //Debug.WriteLine($"[TAP] Password: {pPassw}");
+
+
+        //var accSerialized = JsonSerializer.Serialize(new { Username = pKey, Password = pPassw });
+        //var newProfile = new UserProfile { DisplayName = pKey, FriendList = new List<FriendInfo>() };
+        //newProfile.FriendList.Add(new FriendInfo { Name = "Raj", DisplayName = "TheNepaleseKing", UniqueId = "Rpk1", isCloseFriend = true });
+
+        //var profileSerialized = JsonSerializer.Serialize(newProfile);
+        //await SecureStorage.Default.SetAsync(accSerialized, profileSerialized).ContinueWith(task =>
+        //{
+        //    if (task.IsCompletedSuccessfully)
+        //    {
+        //        Debug.WriteLine($"[SECURE STORAGE] returned Successfully!:");
+        //        LoginOrCreateProfileBorder.IsVisible = false;
+        //        return true;
+        //    }
+        //    else
+        //    {
+        //        Debug.WriteLine($"[SECURE STORAGE] Error storing profile: {task.Exception?.Message}");
+        //        return false;
+        //    }
+        //});
+
+        //// Remove data
+        //SecureStorage.Default.Remove("oauth_token");
+    }
+
+    void SendSignupErrorMsg(string _msg, bool _isSuccessful = false)
+    {
+        if (!_isSuccessful)
+        {
+            LoginMsgTxt.Text = _msg;
+            Color red = new Color(255, 0, 0);
+            LoginMsgTxt.TextColor = red;
+        }
+    }
+
+    void UpdateAppToProfile(UserProfile _userProf)
+    {
+        // Update friends, settings, and other things according to the profile that just logged in
+
+        //Friends
+        foreach (var frnds in _userProf.FriendList)
+        {
+            FriendsListCollection.Add(frnds);
+        }
+    }
+
+
 }
