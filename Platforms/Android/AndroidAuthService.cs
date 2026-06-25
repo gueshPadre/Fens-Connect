@@ -19,6 +19,17 @@ namespace FENS_Connect.Platforms.Android
             _auth = FirebaseAuth.Instance;
         }
 
+        public string GetCurrentUserId()
+        {
+            var user = _auth.CurrentUser;
+
+            return user?.Uid;
+        }
+
+        public void SignOut()
+        {
+            _auth.SignOut();
+        }
 
         /// <summary>
         /// Creates a User with an email and a password

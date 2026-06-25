@@ -13,43 +13,6 @@ namespace FENS_Connect
     {
         FirestoreDb myDb;
 
-        // NAMES OF THE FIELDS ON THE FIRESTORE DB. SO CONST FOR THAT REASON
-        const string DISPLAY_NAME = "DisplayName";
-
-
-        /// <summary>
-        /// Connects the user to the Firebase database for the first time and sets the display name
-        /// </summary>
-        public async Task ConnectUserToDb(string _uID, MapPage.UserProfile _user)
-        {
-            try
-            {
-                await ConnectToDb();
-
-                var pRef = myDb.Collection("Users").Document(_uID);
-                var pUser = new
-                {
-                    DisplayName = _user.DisplayName,
-                    MyEmail = _user.UserEmail,
-                    MyLocation = _user.UserLocation,
-                    FriendList = _user.FriendList,
-                };
-
-
-                var r = await pRef.SetAsync(pUser);
-
-                Debug.WriteLine($"[FB] WORKED {r.UpdateTime}");
-            }
-            catch(Exception ex)
-            {
-                Debug.WriteLine($"[FB] CRITICAL ERROR: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
-                }
-            }
-
-        }
 
         async Task ConnectToDb()
         {
@@ -93,6 +56,58 @@ namespace FENS_Connect
         }
 
 
+        /// <summary>
+        /// Connects the user to the Firebase database for the first time and sets the display name
+        /// </summary>
+        public async Task ConnectUserToDb(string _uID, MapPage.UserProfile _user, bool _needToUpdate = false)
+        {
+            try
+            {
+                await ConnectToDb();
+
+                var pRef = myDb.Collection("Users").Document(_uID);
+                var pUser = new
+                {
+                    DisplayName = _user.DisplayName,
+                    MyEmail = _user.UserEmail,
+                    MyLocation = _user.UserLocation,
+                };
+                if (_needToUpdate)
+                    await pRef.SetAsync(pUser, SetOptions.MergeAll);
+                else
+                    await pRef.SetAsync(pUser);
+
+
+                var pFriendRef = pRef.Collection("FriendList");
+                foreach (var f in _user.FriendList)
+                {
+                    var frndData = new
+                    {
+                        Name = f.Name,
+                        IsCloseFriend = f.isCloseFriend,
+                        DisplayName = f.DisplayName,
+                        uID = f.UniqueId,
+                    };
+
+                    if (_needToUpdate)
+                        await pFriendRef.Document(f.Name).SetAsync(frndData, SetOptions.MergeAll);
+                    else
+                        await pFriendRef.Document(f.Name).SetAsync(frndData);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FB] CRITICAL ERROR: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
+                }
+            }
+
+        }
+
+
         public async Task<MapPage.UserProfile> RetrieveUserInfo(string _uID)
         {
             await ConnectToDb();
@@ -104,14 +119,28 @@ namespace FENS_Connect
 
             var myUser = new MapPage.UserProfile();
 
-            var name = pDict[DISPLAY_NAME].ToString();
-            if(name != null) myUser.DisplayName = name;
+            var name = pDict["DisplayName"].ToString();
+            if (name != null) myUser.DisplayName = name;
 
             var email = pDict["MyEmail"].ToString();
-            if (name != null) myUser.DisplayName = name;
+            if (email != null) myUser.UserEmail = email;
 
             GeoPoint myLoc = (GeoPoint)pDict["MyLocation"];
             myUser.UserLocation = myLoc;
+
+            var pFriendSnapShot = pDocRef.Collection("FriendList");
+            var pFriendL = await pFriendSnapShot.GetSnapshotAsync();
+            MapPage.FriendInfo myUserFriendProfile = new MapPage.FriendInfo();
+            foreach (var doc in pFriendL.Documents)
+            {
+                Dictionary<string, object> docDict = doc.ToDictionary();
+                myUserFriendProfile.Name = (string)docDict["Name"];
+                myUserFriendProfile.DisplayName = (string)docDict["DisplayName"];
+                myUserFriendProfile.isCloseFriend = (bool)docDict["IsCloseFriend"];
+                myUserFriendProfile.UniqueId = (string)docDict["uID"];
+
+                myUser.FriendList.Add(myUserFriendProfile);
+            }
 
             return myUser;
         }

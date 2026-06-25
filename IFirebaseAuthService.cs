@@ -10,5 +10,9 @@ namespace FENS_Connect
         Task<string> GetEmailPasswordAsync(string email, string password);
 
         Task<string> SetEmailPassword(string email, string password);
+
+        string GetCurrentUserId();
+
+        void SignOut();
     }
 }

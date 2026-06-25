@@ -391,10 +391,21 @@
                     FontSize="22"
                     BackgroundColor="Transparent"/>
                 </VerticalStackLayout>
-                <Grid
+                <VerticalStackLayout
                     Grid.Row="2"
+                    Spacing="20">
+                    <Label
+                        Text=""
+                        x:Name="ProfileNameText"
+                        IsVisible="False"
+                        FontSize="16"
+                        FontAttributes="Bold,Italic"
+                        HorizontalOptions="Center"
+                        TextColor="Black"/>
+
+                    <Grid
                     ColumnDefinitions="Auto,*">
-                    <Button 
+                        <Button 
                     Text="Back" 
                     HeightRequest="50"
                     WidthRequest="150"
@@ -402,19 +413,21 @@
                     CornerRadius="100"
                     Margin="20, 0, 0, 0"
                     BackgroundColor="White"/>
-                    <Image
+                        <Image
+                    x:Name="SettingsProfileImage"
                     WidthRequest="35"
                     HeightRequest="35"
                     Source="profile.png"
                     Grid.Column="1">
 
-                        <Image.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnProfileClicked"/>
-                        </Image.GestureRecognizers>
+                            <Image.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnProfileClicked"/>
+                            </Image.GestureRecognizers>
 
 
-                    </Image>
-                </Grid>
+                        </Image>
+                    </Grid>
+                </VerticalStackLayout>
             </Grid>
 
 
@@ -695,6 +708,7 @@
                     Margin="20, 0, 0, 0"
                     BackgroundColor="White"/>
                     <Image
+                        x:Name="AloneSettingsProfileImage"
                     WidthRequest="35"
                     HeightRequest="35"
                     Source="profile.png"
@@ -1150,14 +1164,58 @@
             WidthRequest="250"
             HeightRequest="400">
 
-            <Label
+            <Grid
+                RowDefinitions="Auto,*, Auto">
+                <Label
                 x:Name="ProfileText"
-                FontSize="24"
+                Text="Welcome Guesh"
+                FontSize="20"
                 FontAttributes="Bold,Italic"
                 HorizontalTextAlignment="Center"
-                Padding ="10,20,0,0"
+                Padding ="15,30"
                 TextColor="DarkBlue"/>
 
+                <VerticalStackLayout
+                    Grid.Row="1"
+                    Spacing="10"
+                    VerticalOptions="Center">
+                    <Label
+                        Text="ID: 999999999999999999"
+                        x:Name="ProfileIDShow"
+                        FontSize="14"
+                        TextColor="DarkBlue"
+                        HorizontalOptions="Center"/>
+                    <Label
+                        Text="Display Name: lorem Ipsum"
+                        x:Name="ProfileDisplayShow"
+                        LineBreakMode="CharacterWrap"
+                        FontSize="14"
+                        TextColor="DarkBlue"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"/>
+                    <Label
+                        Text="Email: MyEmail@email.com"
+                        x:Name="ProfileEmailShow"
+                        LineBreakMode="CharacterWrap"
+                        FontSize="14"
+                        TextColor="DarkBlue"
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+
+                <Button
+                    Text="Sign out"
+                    BackgroundColor="IndianRed"
+                    Grid.Row="2"
+                    Margin="40,40"
+                    FontSize="16"
+                    Clicked="OnLogoutClicked"
+                    FontAttributes="Bold"/>
+
+
+
+
+            </Grid>
 
 
 

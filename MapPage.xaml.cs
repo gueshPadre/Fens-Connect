@@ -5,7 +5,7 @@ using Google.Cloud.Firestore;
 
 namespace FENS_Connect;
 
-[QueryProperty(nameof(City), "city")]
+//[QueryProperty(nameof(City), "city")]
 public partial class MapPage : ContentPage
 {
     public class UserProfile
@@ -70,6 +70,8 @@ public partial class MapPage : ContentPage
 
     public ObservableCollection<RouteStep> RouteSteps { get; set; } = new ObservableCollection<RouteStep>();
     public ObservableCollection<FriendInfo> FriendsListCollection { get; set; } = new ObservableCollection<FriendInfo>();
+
+
     string _city = string.Empty;
     List<LocationMarkers> businessDict = new List<LocationMarkers>();
     Location currentLoc;
@@ -90,15 +92,45 @@ public partial class MapPage : ContentPage
         }
     }
 
+    string currentFirebaseUserId;
+
     public MapPage(IFirebaseAuthService authService)
     {
         InitializeComponent();
+
+        currentFirebaseUserId = authService.GetCurrentUserId();
+
+        _db = new F_FirestoreDB();
+
         BindingContext = this;
         _authService = authService;
-        _db = new F_FirestoreDB();
 
         // HTML maps integration
         LoadingMap();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        if (!string.IsNullOrEmpty(currentFirebaseUserId))
+        {
+            try
+            {
+                CurrentUser = await GetUserInfo(currentFirebaseUserId);
+                UpdateAppToProfile(CurrentUser);
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("Error", "Could not load user profile data.", "OK");
+            }
+        }
+    }    
+    
+
+    async Task<UserProfile> GetUserInfo(string _currentUserId)
+    {
+        return await _db.RetrieveUserInfo(_currentUserId);
     }
 
     async void LoadingMap()
@@ -454,12 +486,6 @@ public partial class MapPage : ContentPage
 
     }
 
-    protected override void OnAppearing()
-    {
-        base.OnAppearing();
-        //UpdateCityDisplay();
-    }
-
     /// <summary>
     /// Draws the route to the closest safe place
     /// </summary>
@@ -718,76 +744,95 @@ public partial class MapPage : ContentPage
     private async void OnProfileClicked(object? sender, EventArgs e)
     {
         if (CurrentUser == null)
-            LoginOrCreateOption.IsVisible = !LoginOrCreateOption.IsVisible;
+        {
+            // Not connected yet
+            LoginOrCreateOption.IsVisible = true;
+        }
         else
         {
             // show logged in User Info
             LoginOrCreateOption.IsVisible = false;
-            UserProfileInfo.IsVisible = true;
-            ProfileText.Text = $"Weclome {CurrentUser.DisplayName}";
+            UserProfileInfo.IsVisible = !UserProfileInfo.IsVisible;
+            ProfileText.Text = $"Welcome {CurrentUser.DisplayName}";
         }
     }
-    private async void OnLoginClicked(object? sender, EventArgs e)
-    {
-        string pKey = string.Empty;
-        string pPassw = string.Empty;
+    
+    /// <summary>
+    /// COMMENTED FOR SERIALIZE LOGIC, IF EVER WE WANT TO BRING IT BACK
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
 
-        pKey = $"{LoginEmailEntry.Text}";   // Concatenate both entries to find the unique username
-        Debug.WriteLine($"[TAP] MY USERNAME: {pKey}");
-        pPassw = LoginPasswordEntry.Text;
-        Debug.WriteLine($"[TAP] Password: {pPassw}");
+    //private async void OnLoginClicked(object? sender, EventArgs e)
+    //{
+    //    string pKey = string.Empty;
+    //    string pPassw = string.Empty;
 
-        var accSerialized = JsonSerializer.Serialize(new { Username = pKey, Password = pPassw });
-        // Retrieve user data
-        string profile = string.Empty;
-        UserProfile userProf = new UserProfile();
-        if (accSerialized != null || string.IsNullOrEmpty(accSerialized))
-        {
-            profile = await SecureStorage.Default.GetAsync(accSerialized);
-            userProf = JsonSerializer.Deserialize<UserProfile>(profile);
-            Debug.WriteLine($"[SECURE STORAGE] DATA retried Successfully!with friend: {userProf?.FriendList[0].DisplayName}");
-            //LoginOrCreateProfileBorder.IsVisible = false;
+    //    pKey = $"{LoginEmailEntry.Text}";   // Concatenate both entries to find the unique username
+    //    Debug.WriteLine($"[TAP] MY USERNAME: {pKey}");
+    //    pPassw = LoginPasswordEntry.Text;
+    //    Debug.WriteLine($"[TAP] Password: {pPassw}");
 
-            UpdateAppToProfile(userProf);
-            CurrentUser = userProf;
-        }
+    //    var accSerialized = JsonSerializer.Serialize(new { Username = pKey, Password = pPassw });
+    //    // Retrieve user data
+    //    string profile = string.Empty;
+    //    UserProfile userProf = new UserProfile();
+    //    if (accSerialized != null || string.IsNullOrEmpty(accSerialized))
+    //    {
+    //        profile = await SecureStorage.Default.GetAsync(accSerialized);
+    //        userProf = JsonSerializer.Deserialize<UserProfile>(profile);
+    //        Debug.WriteLine($"[SECURE STORAGE] DATA retried Successfully!with friend: {userProf?.FriendList[0].DisplayName}");
+    //        //LoginOrCreateProfileBorder.IsVisible = false;
 
-    }
+
+    //    }
+
+    //}
 
     private async void OpenLoginPopup(object? sender, EventArgs e)
     {
         LoginPopup.IsVisible = true;
-        LoginOrCreateOption.IsVisible= false;
+        LoginOrCreateOption.IsVisible = false;
     }
 
     private async void OpenSignupPopup(object? sender, EventArgs e)
     {
         SignupPopup.IsVisible = true;
-        LoginOrCreateOption.IsVisible= false;
+        LoginOrCreateOption.IsVisible = false;
     }
 
 
 
     private async void OnLoginButtonClicked(object sender, EventArgs e)
     {
+        UserProfile pUser = new();
         try
         {
             // Execute the simple Firebase request
             string userUid = await _authService.GetEmailPasswordAsync(LoginEmailEntry.Text, LoginPasswordEntry.Text);
 
+            currentFirebaseUserId = userUid;
 
-            var pUser = await _db.RetrieveUserInfo(userUid);
+            pUser = await _db.RetrieveUserInfo(userUid);
 
-            await DisplayAlertAsync("Success", $"Logged in successfully! User ID: {userUid} and my email: {pUser.UserEmail}", "Got it");
+            //await DisplayAlertAsync("Success", $"Logged in successfully! User ID: {userUid} and my email: {pUser.UserEmail}", "Got it");
 
             //SendSignupErrorMsg("Successful!! ", true);
         }
         catch (Exception ex)
         {
             await DisplayAlertAsync("Error", $"Login failed: {ex.Message}", "rip");
+
             //SendSignupErrorMsg("UNSuccessful!! ");
         }
 
+        if (pUser.DisplayName != string.Empty)
+        {
+            LoginPopup.IsVisible = false;
+
+            UpdateAppToProfile(pUser);
+            CurrentUser = pUser;
+        }
     }
 
 
@@ -796,28 +841,58 @@ public partial class MapPage : ContentPage
         // At least 4 characters for the name
         if (DisplayNameEntry.Text.Length < 4)
         {
-            await DisplayAlertAsync("Woops!","Name should be at least 4 characters!", "Try again");
+            await DisplayAlertAsync("Woops!", "Name should be at least 4 characters!", "Try again");
             return;
         }
+        string pId = string.Empty;
+        bool needToUpdate = false;
+        try
+        {
+            pId = await _authService.SetEmailPassword(SignupEmailEntry.Text, SignupPasswordEntry.Text);
 
-        var pId = await _authService.SetEmailPassword(SignupEmailEntry.Text, SignupPasswordEntry.Text);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Already Signed", $"{ex.Message}", "kk");
+
+            pId = await _authService.GetEmailPasswordAsync(SignupEmailEntry.Text, SignupPasswordEntry.Text);
+            needToUpdate = true;
+        }
         UserProfile pNewProf = new UserProfile()
         {
             DisplayName = DisplayNameEntry.Text,
             UserEmail = SignupEmailEntry.Text,
             UserLocation = new GeoPoint(currentLoc.Latitude, currentLoc.Longitude),
-            FriendList = new List<FriendInfo>()
+            FriendList = new List<FriendInfo>() { new FriendInfo() { Name = "Raj", DisplayName = "TheNepaleseKing", UniqueId = "", isCloseFriend = true } }
         };
 
-        await _db.ConnectUserToDb(pId, pNewProf);
+        currentFirebaseUserId = pId;
+        await _db.ConnectUserToDb(pId, pNewProf, needToUpdate);
 
-        await DisplayAlertAsync("SUCCESS!","You're in the DB!","Yay");
+        await DisplayAlertAsync("SUCCESS!", "You're in the DB!", "Yay");
 
-        await Task.Delay(1000);
-        
         SignupPopup.IsVisible = false;
-        Debug.WriteLine($"[FB] returned Successfully!:");
+
+        if (needToUpdate)
+            UpdateAppToProfile(pNewProf);
+        CurrentUser = pNewProf;
+
     }
+
+    private async void OnLogoutClicked(object? sender, EventArgs e)
+    {
+        _authService.SignOut();
+
+        CurrentUser = null;
+
+        ProfileNameText.IsVisible = false;
+
+        if (Application.Current != null)
+        {
+            await Shell.Current.GoToAsync($"{nameof(MapPage)}");
+        }
+    }
+
 
     //void SendSignupErrorMsg(string _msg, bool _isSuccessful = false)
     //{
@@ -837,7 +912,16 @@ public partial class MapPage : ContentPage
 
     void UpdateAppToProfile(UserProfile _userProf)
     {
-        // Update friends, settings, and other things according to the profile that just logged in
+        //Update friends, settings, and other things according to the profile that just logged in
+        //UI 
+        ProfileNameText.Text = $"{_userProf.DisplayName}";
+        ProfileNameText.IsVisible = true;
+        //SettingsProfileImage.IsVisible = false;
+        //AloneSettingsProfileImage.IsVisible = false;
+
+        ProfileDisplayShow.Text = _userProf.DisplayName;
+        ProfileIDShow.Text = currentFirebaseUserId;
+        ProfileEmailShow.Text = _userProf.UserEmail;
 
         //Friends
         foreach (var frnds in _userProf.FriendList)

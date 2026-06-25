@@ -28,6 +28,7 @@ namespace FENS_Connect
             // Register your platform-specific service implementation
 #if ANDROID
             builder.Services.AddSingleton<IFirebaseAuthService, Platforms.Android.AndroidAuthService>();
+            builder.Services.AddTransient<App>();
 #else
     // Fallback stub for Windows/iOS so compilation won't crash when running mock states
     //builder.Services.AddSingleton<IFirebaseAuthService, MockAuthService>(); 
