@@ -130,9 +130,9 @@ namespace FENS_Connect
 
             var pFriendSnapShot = pDocRef.Collection("FriendList");
             var pFriendL = await pFriendSnapShot.GetSnapshotAsync();
-            MapPage.FriendInfo myUserFriendProfile = new MapPage.FriendInfo();
             foreach (var doc in pFriendL.Documents)
             {
+                MapPage.FriendInfo myUserFriendProfile = new MapPage.FriendInfo();
                 Dictionary<string, object> docDict = doc.ToDictionary();
                 myUserFriendProfile.Name = (string)docDict["Name"];
                 myUserFriendProfile.DisplayName = (string)docDict["DisplayName"];

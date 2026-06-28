@@ -1184,7 +1184,8 @@
                         x:Name="ProfileIDShow"
                         FontSize="14"
                         TextColor="DarkBlue"
-                        HorizontalOptions="Center"/>
+                        HorizontalOptions="Center"
+                        HorizontalTextAlignment="Center"/>
                     <Label
                         Text="Display Name: lorem Ipsum"
                         x:Name="ProfileDisplayShow"

@@ -285,6 +285,26 @@
 
             //------
 
+            // Selkirk Cafe
+            const selCafe_b = new Business({
+                name: 'Selkirk Cafe',
+                safeword: 'Milkless Coffee',
+                alternativeExit: 'No',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/selkirk_star.png'
+            });
+
+            // Set opening and closing hours for selC
+            selCafe_b.setOpeningHours('7:30', '7:30', '00:00', '7:30', '7:30', '9:00', '00:00');
+            selCafe_b.setClosingHours('16:00', '16:00', '00:00', '16:00', '16:00', '15:00', '00:00');
+
+            const selC = createMarker(
+                - 123.37857177606156, 48.44044497495145, selCafe_b);
+            // Get info of the marker
+            selCafe_b.markerRef = selC;
+
+            //------
+
+
             // Vancouver Art Gallery
             const vag_b = new Business({
                 name: 'Vancouver Art Gallery',

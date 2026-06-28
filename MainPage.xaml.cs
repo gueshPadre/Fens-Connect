@@ -24,7 +24,7 @@ namespace FENS_Connect
 
         private async void OnConfirmClicked(object? sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync($"{nameof(MapPage)}?city=Vancouver");
+            await Shell.Current.GoToAsync($"{nameof(MapPage)}");
 
         }
 

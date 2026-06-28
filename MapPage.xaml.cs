@@ -746,7 +746,7 @@ public partial class MapPage : ContentPage
         if (CurrentUser == null)
         {
             // Not connected yet
-            LoginOrCreateOption.IsVisible = true;
+            LoginOrCreateOption.IsVisible = !LoginOrCreateOption.IsVisible;
         }
         else
         {
@@ -883,8 +883,10 @@ public partial class MapPage : ContentPage
     {
         _authService.SignOut();
 
+        // Clean variables
         CurrentUser = null;
 
+        // Hide targeted texts
         ProfileNameText.IsVisible = false;
 
         if (Application.Current != null)
@@ -919,9 +921,9 @@ public partial class MapPage : ContentPage
         //SettingsProfileImage.IsVisible = false;
         //AloneSettingsProfileImage.IsVisible = false;
 
-        ProfileDisplayShow.Text = _userProf.DisplayName;
-        ProfileIDShow.Text = currentFirebaseUserId;
-        ProfileEmailShow.Text = _userProf.UserEmail;
+        ProfileDisplayShow.Text = $"Your display Name: \n{_userProf.DisplayName}";
+        ProfileIDShow.Text = $"Your ID: \n{currentFirebaseUserId}";
+        ProfileEmailShow.Text = $"Your Email: \n{_userProf.UserEmail}";
 
         //Friends
         foreach (var frnds in _userProf.FriendList)
