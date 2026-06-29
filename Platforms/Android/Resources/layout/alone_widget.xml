@@ -12,7 +12,7 @@
       android:id="@+id/widgetButton"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:text="@Alone Widget"
+      android:text="Alone Off"
       android:textColor="#3ab54a"
       android:textSize="18sp"
       android:textStyle="bold"/>

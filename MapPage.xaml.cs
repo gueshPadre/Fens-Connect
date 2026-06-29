@@ -112,6 +112,9 @@ public partial class MapPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        AloneModeState.Changed -= OnAloneModeChanged;
+        AloneModeState.Changed += OnAloneModeChanged;
+        SetAloneMode(AloneModeState.IsAlone, saveState: false);
 
         if (!string.IsNullOrEmpty(currentFirebaseUserId))
         {
@@ -126,6 +129,12 @@ public partial class MapPage : ContentPage
             }
         }
     }    
+
+    protected override void OnDisappearing()
+    {
+        AloneModeState.Changed -= OnAloneModeChanged;
+        base.OnDisappearing();
+    }
     
 
     async Task<UserProfile> GetUserInfo(string _currentUserId)
@@ -626,14 +635,28 @@ public partial class MapPage : ContentPage
 
     private void ActivateAloneMode(object? sender, TappedEventArgs e)
     {
-        // Activate alone mode
-        IsAlone = !IsAlone;
+        ToggleAloneMode();
+    }
 
-        // if just got turned on, put check inside the logo
-        if (IsAlone)
-            AloneCheckMark.IsVisible = true;
-        else
-            AloneCheckMark.IsVisible = false;
+    public void ToggleAloneMode()
+    {
+        SetAloneMode(!IsAlone);
+    }
+
+    public void SetAloneMode(bool isAlone, bool saveState = true)
+    {
+        IsAlone = isAlone;
+        AloneCheckMark.IsVisible = IsAlone;
+
+        if (saveState)
+        {
+            AloneModeState.Set(IsAlone);
+        }
+    }
+
+    private void OnAloneModeChanged(object? sender, bool isAlone)
+    {
+        MainThread.BeginInvokeOnMainThread(() => SetAloneMode(isAlone, saveState: false));
     }
 
     private async void OpenSettings(object? sender, TappedEventArgs e)
