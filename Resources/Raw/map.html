@@ -136,7 +136,11 @@
         let shouldCancel = false;
         let popupInfo = "";
         let oldPopup;
-        let popupNotes = {};
+        let userName = "";
+        let userId = "";
+        let alertDict = {};
+
+
 
         function updateUserLocation(lng, lat) {
             userLoc.setLngLat([lng, lat]);
@@ -282,6 +286,63 @@
                 -123.36213254907534, 48.42484591493667, btw_b);
             // Get info of the marker
             btw_b.markerRef = btw;
+
+            //------
+
+            // Baan Thai Wok Oak Bay
+            const btwo_b = new Business({
+                name: 'Baan Thai Oak Bay',
+                safeword: 'Thai Papa',
+                alternativeExit: 'Yes',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/BTWstarOutline.png'
+            });
+
+            // Set opening and closing hours for btw
+            btwo_b.setOpeningHours('11:00', '11:00', '11:00', '11:00', '11:00', '11:00', '11:00');
+            btwo_b.setClosingHours('23:00', '23:00', '23:00', '23:00', '23:00', '23:00', '23:00');
+
+            const btwo = createMarker(
+                -123.31852740237463, 48.4358049394821, btwo_b);
+            // Get info of the marker
+            btwo_b.markerRef = btwo;
+
+            //------
+
+            // Baan Thai Wok Langford
+            const btwf_b = new Business({
+                name: 'Baan Thai Langford',
+                safeword: 'Thai Papa',
+                alternativeExit: 'Yes',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/BTWstarOutline.png'
+            });
+
+            // Set opening and closing hours for btw
+            btwf_b.setOpeningHours('11:00', '11:00', '11:00', '11:00', '11:00', '11:00', '11:00');
+            btwf_b.setClosingHours('23:00', '23:00', '23:00', '23:00', '23:00', '23:00', '23:00');
+
+            const btwf = createMarker(
+                -123.51113145480343, 48.438993766245495, btwf_b);
+            // Get info of the marker
+            btwf_b.markerRef = btwf;
+
+            //------
+
+            // Baan Thai Wok Broadmead
+            const btwb_b = new Business({
+                name: 'Baan Thai Broadmead',
+                safeword: 'Thai Papa',
+                alternativeExit: 'Yes',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/BTWstarOutline.png'
+            });
+
+            // Set opening and closing hours for btw
+            btwb_b.setOpeningHours('11:00', '11:00', '11:00', '11:00', '11:00', '11:00', '11:00');
+            btwb_b.setClosingHours('23:00', '23:00', '23:00', '23:00', '23:00', '23:00', '23:00');
+
+            const btwb = createMarker(
+                -123.3779222349418, 48.499315952806576, btwb_b);
+            // Get info of the marker
+            btwb_b.markerRef = btwb;
 
             //------
 
@@ -432,7 +493,9 @@
         }
 
         function createAlertMarker() {
+            // Create the on map caution alert sign
             const alertEl = document.createElement('div');
+            alertEl.id = 'alertMarker'
             alertEl.className = 'alert-marker';
 
             const alertImg = document.createElement('img');
@@ -441,26 +504,29 @@
             alertImg.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/caution.png';
             alertEl.appendChild(alertImg);
 
-            writeNoteForAlert();
-
-            alertEl.addEventListener('click', () => {
-                showAlertNote();
-            });
-
-
-            new mapboxgl.Marker({
+            const aM = new mapboxgl.Marker({
                 element: alertEl
             })
                 .setLngLat(userLoc.getLngLat())
                 .addTo(map);
+
+            const uniqueID = crypto.randomUUID();
+            aM.id = 'marker: ' + uniqueID;
+            // Create note popup
+            writeNoteForAlert(aM);
+
+            alertEl.addEventListener('click', () => {
+                showAlertNote(aM);
+            });
+
+
         }
 
-        function showAlertNote() {
+        function showAlertNote(alertMarker) {
             // Check if already has note
-            if (popupNotes != null) {
-                const locKey = userLoc.getLngLat();
-                const keyStr = `${locKey.lng},${locKey.lat}`;
-                const alertNote = popupNotes[keyStr];
+            if (alertDict != null) {
+
+                const alertNote = alertDict[alertMarker.id].note;
                 if (alertNote != null) {
                     //Simply display the note.
                     const popup = document.createElement('div');
@@ -471,8 +537,52 @@
                     subTitle.className = 'sketchyAlertSubtitle'
                     subTitle.innerText = alertNote;
 
-                    popup.appendChild(subTitle);
-                    document.body.appendChild(popup);
+                    const details = document.createElement('p');
+                    details.className = 'sketchyAlertDetails'
+                    const creator = alertDict[alertMarker.id].createdBy;
+                    if (!creator) {
+                        details.innerText = 'Created by you';
+                    } else {
+                        details.innerText = 'Created by ' + creator;
+                    }
+
+                    const alertUser = alertDict[alertMarker.id].userId;
+                    if (alertUser == userId) {
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.innerText = 'Delete';
+                        deleteBtn.className = 'sketchyAlertDeletePopup-btn';
+
+                        deleteBtn.onclick = () => {
+                            popup.classList.remove('show');
+                            setTimeout(() => popup.remove(), 250);
+
+                            //Delete on server
+                            const url = new URL("app://DeleteAlert");
+
+                            // This automatically encodes everything and structures the '&' and '?' perfectly
+                            url.search = new URLSearchParams({
+                                markerID: alertMarker.id
+                            }).toString();
+
+                            window.location.href =
+                                url.toString();
+
+                            delete alertDict[alertMarker.id];
+                            alertMarker.remove();
+                        }
+                        popup.appendChild(subTitle);
+                        popup.appendChild(details);
+                        document.body.appendChild(popup);
+                        popup.appendChild(deleteBtn);
+                    }
+                    else {  // to keep the order of hierarchy
+                        popup.appendChild(subTitle);
+                        popup.appendChild(details);
+                        document.body.appendChild(popup);
+                    }
+
+
 
                     setTimeout(() => {
                         popup.classList.add('show');
@@ -512,8 +622,8 @@
         }
 
 
-
-        function writeNoteForAlert() {
+        let markerSaved = false;
+        function writeNoteForAlert(alertMarker) {
             const popup = document.createElement('div');
             popup.id = 'sketchyAlertPopup';
             popup.classList.add('sketchyAlert-Popup');
@@ -531,7 +641,7 @@
 
             // });
 
-            const closeButton = addCloseButton(popup);
+            const closeButton = addCloseButton(popup, alertMarker);
             popup.appendChild(closeButton);
 
             popup.appendChild(input);
@@ -554,9 +664,31 @@
                 popup.appendChild(thxMsg);
 
                 // Set dictionnary
-                const markLoc = userLoc.getLngLat();
-                const locKey = `${markLoc.lng},${markLoc.lat}`;
-                popupNotes[locKey] = noteText;
+                alertDict[alertMarker.id] = {
+                    note: noteText,
+                    createdBy: userName,
+                    userId: userId,
+                    lat: alertMarker.getLngLat().lat,
+                    lng: alertMarker.getLngLat().lng
+                };
+
+                markerSaved = true;
+
+                const url = new URL("app://setNewAlert");
+
+                // This automatically encodes everything and structures the '&' and '?' perfectly
+                url.search = new URLSearchParams({
+                    markerID: alertMarker.id,
+                    userID: alertDict[alertMarker.id].userId,
+                    note: alertDict[alertMarker.id].note,
+                    createdBy: alertDict[alertMarker.id].createdBy,
+                    lat: alertDict[alertMarker.id].lat,
+                    lng: alertDict[alertMarker.id].lng
+                }).toString();
+
+                window.location.href =
+                    url.toString();
+                //`app://setNewAlert?markerID=${encodeURIComponent(alertMarker.id)}&userID=${encodeURIComponent(alertDict[alertMarker.id].userId)}`;
 
                 setTimeout(() => {
                     title.remove();
@@ -567,6 +699,7 @@
                 setTimeout(() => {
                     popup.classList.remove('show');
                     setTimeout(() => popup.remove(), 250);
+                    markerSaved = false;        // reset variable
                 }, 3000);
             };
             popup.appendChild(saveBtn);
@@ -579,7 +712,7 @@
             }, 10);
         }
 
-        function addCloseButton(popup) {
+        function addCloseButton(popup, alertMarker) {
             //Close Button
             const closeButton = document.createElement('button');
 
@@ -591,6 +724,10 @@
             closeButton.onclick = () => {
                 popup.classList.remove('show');
 
+                // Renove the marker if we're closing right away
+                if (!markerSaved) {
+                    alertMarker.remove();
+                }
                 setTimeout(() => {
 
                     popup.remove();
@@ -1059,7 +1196,44 @@
 
         }
 
+        function UpdateUserNameAndId(_userName, _userId) {
+            userName = _userName;
+            userId = _userId;
+        }
 
+        // Set the Alert markers that were already previously set
+        // This is called from the C# side when the map is loaded
+        function setAlertMarker(_markerId, _markerNote, _alertLocLng, _alertLocLat, _createdBy, _userId) {
+            // Create the on map caution alert sign
+            const alertEl = document.createElement('div');
+            alertEl.className = 'alert-marker';
+
+            const alertImg = document.createElement('img');
+            alertImg.className = 'alert-Img';
+
+            alertImg.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/caution.png';
+            alertEl.appendChild(alertImg);
+
+            const aM = new mapboxgl.Marker({
+                element: alertEl
+            })
+                .setLngLat([_alertLocLng, _alertLocLat])
+                .addTo(map);
+
+            aM.id = _markerId;
+
+            alertEl.addEventListener('click', () => {
+                showAlertNote(aM);
+            });
+            // Add the alert to the local dictionnary
+            alertDict[_markerId] = {
+                note: _markerNote,
+                createdBy: _createdBy,
+                userId: _userId,
+                lat: _alertLocLat,
+                lng: _alertLocLng
+            };
+        }
 
         function getMarkerList() {
             return JSON.stringify(markerList);
@@ -1068,6 +1242,7 @@
         function getNameList() {
             return JSON.stringify(nameList);
         }
+
 
     </script>
 
@@ -1290,8 +1465,27 @@
             transition: background 0.2s;
         }
 
+        .sketchyAlertDeletePopup-btn {
+            width: 40%;
+            height: 30%;
+            background-color: #ff0000;
+            color: black;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
         .sketchyAlertSubtitle {
             font-style: italic;
+        }
+
+        .sketchyAlertDetails {
+            font-size: 8px;
+            color: #48494B;
+            justify-content: center;
+            align-content: center;
+            text-align: center;
         }
 
         .sketchyAlertThxMsg {

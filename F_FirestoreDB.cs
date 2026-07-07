@@ -145,5 +145,94 @@ namespace FENS_Connect
             return myUser;
         }
 
+
+        public async Task AddAlertToDb(string _userID, MapPage.AlertMarkerInfo _alertID)
+        {
+            try
+            {
+
+                await ConnectToDb();
+                var pDocRef = myDb.Collection("Users").Document(_userID);
+
+                var pAlerts = pDocRef.Collection("Alerts");
+
+                var pUserAlert = new
+                {
+                    alertID = _alertID.MarkerID,
+                    Note = _alertID.Note,
+                    AlertOwner = _alertID.CreatedBy,
+                    alertLocation = _alertID.alertLoc,
+                    UserId = _alertID.UserID
+                };
+
+                await pAlerts.Document(_alertID.MarkerID).SetAsync(pUserAlert, SetOptions.MergeAll);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FB] CRITICAL ERROR: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
+                }
+
+            }
+        }
+
+
+        public async Task<List<MapPage.AlertMarkerInfo>> RetrieveAlertMarkers(string _userID)
+        {
+            List<MapPage.AlertMarkerInfo> alerts = new List<MapPage.AlertMarkerInfo>();
+            try
+            {
+                await ConnectToDb();
+                var pDocRef = myDb.Collection("Users").Document(_userID);
+                var pAlerts = pDocRef.Collection("Alerts");
+                var pAlertList = await pAlerts.GetSnapshotAsync();
+                foreach (var doc in pAlertList.Documents)
+                {
+                    Dictionary<string, object> docDict = doc.ToDictionary();
+                    string alertID = (string)docDict["alertID"];
+                    string note = (string)docDict["Note"];
+                    string createdBy = (string)docDict["AlertOwner"];
+                    GeoPoint alertLoc = (GeoPoint)docDict["alertLocation"];
+                    string userID = (string)docDict["UserId"];
+                    //Debug.WriteLine($"[FB] Retrieved Alert ID: {alertID}, and {note}");
+
+                    alerts.Add(new MapPage.AlertMarkerInfo
+                    {
+                        MarkerID = alertID,
+                        Note = note,
+                        CreatedBy = createdBy,
+                        alertLoc = alertLoc,
+                        UserID = userID
+                    });
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FB] CRITICAL ERROR: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
+                }
+            }
+            return alerts;
+        }
+
+        public async Task RemoveAlert(string _userID, string _alertID)
+        {
+            DocumentReference pDocRef = myDb.Collection("Users").Document(_userID).
+                Collection("Alerts").Document(_alertID);
+            try
+            {
+                await pDocRef.DeleteAsync();
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"[FB] NOT DELETED? {e.Message}");
+            }
+        }
+
     }
 }

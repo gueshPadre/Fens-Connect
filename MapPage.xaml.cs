@@ -19,6 +19,15 @@ public partial class MapPage : ContentPage
 
     }
 
+    public class AlertMarkerInfo
+    {
+        public string MarkerID { get; set; } = string.Empty;
+        public string UserID { get; set; } = string.Empty;
+        public string Note { get; set; } = string.Empty;
+        public string CreatedBy { get; set; } = string.Empty;
+        public GeoPoint alertLoc { get; set; } = new GeoPoint();
+    }
+
 
     public class LocationMarkers
     {
@@ -78,7 +87,8 @@ public partial class MapPage : ContentPage
     string currentCity = string.Empty;
     LocationMarkers closestLoc;
 
-    LocationMarkers navigatingBusiness;     // the business that the user is currently navigating to, used to update the directions
+    LocationMarkers? navigatingBusiness;     // the business that the user is currently navigating to, used to update the directions
+
     public static UserProfile CurrentUser { get; private set; }
 
 
@@ -109,6 +119,7 @@ public partial class MapPage : ContentPage
         LoadingMap();
     }
 
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -121,21 +132,21 @@ public partial class MapPage : ContentPage
             try
             {
                 CurrentUser = await GetUserInfo(currentFirebaseUserId);
-                UpdateAppToProfile(CurrentUser);
+                await UpdateAppToProfile(CurrentUser);
             }
             catch (Exception ex)
             {
-                await DisplayAlertAsync("Error", "Could not load user profile data.", "OK");
+                await DisplayAlertAsync("Error", $"Could not load user profile data. {ex.Message}", "OK");
             }
         }
-    }    
+    }
 
     protected override void OnDisappearing()
     {
         AloneModeState.Changed -= OnAloneModeChanged;
         base.OnDisappearing();
     }
-    
+
 
     async Task<UserProfile> GetUserInfo(string _currentUserId)
     {
@@ -172,8 +183,68 @@ public partial class MapPage : ContentPage
                 if (pBus == null) { throw new Exception($"No business found in the dictionnary with the name: {businessName}"); }
                 GetDirectionsToBusiness(pBus);
             }
+            else if (e.Url.Contains("setNewAlert"))
+            {
+                // Set Alert to Db
+                var pUri = new Uri(e.Url);
+                var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
+                string alertID = query["markerID"];
+                string userID = query["userID"];
+                string note = query["note"];
+                string createdBy = query["createdBy"];
+                string lat = query["lat"];
+                string lng = query["lng"];
+
+                var pAlert = new AlertMarkerInfo
+                {
+                    MarkerID = alertID,
+                    UserID = userID,
+                    Note = note,
+                    CreatedBy = createdBy,
+                    alertLoc = new GeoPoint(double.Parse(lat), double.Parse(lng))
+                };
+
+                if (userID != null)
+                {
+                    await AddAlertToDb(userID, pAlert);
+                }
+                //await DisplayAlertAsync("Success", $"alertMarker ID: {alertID}, user: {userID}", "good");
+            }
+            else if (e.Url.Contains("DeleteAlert"))
+            {
+                var pUri = new Uri(e.Url);
+                var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
+                string alertID = query["markerID"];
+                try
+                {
+
+                    var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId);
+
+                    var pAlToDel = pAlerts.FirstOrDefault(alert => alert.MarkerID == alertID);
+
+                    if (pAlToDel != null)
+                    {
+                        await _db.RemoveAlert(currentFirebaseUserId, pAlToDel.MarkerID);
+                        await DisplayAlertAsync("Success", $"Alert deleted successfully", "OK");
+                    }
+                    else
+                    {
+                        await DisplayAlertAsync("Error", $"Error deleting the alert", "OK");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[FB] Non deletion??: {ex.Message}");
+                    if (ex.InnerException != null)
+                    {
+                        Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
+                    }
+                }
+            }
+            
         }
     }
+
 
     /// <summary>
     /// When map is done loading, the loading things disappear
@@ -475,13 +546,17 @@ public partial class MapPage : ContentPage
                 // Check if position has changed enough to update directions (e.g., more than 200 meters)
                 if (currentLoc.CalculateDistance(previousLoc, DistanceUnits.Kilometers) >= 0.015f)
                 {
-                    // update directions 
-                    string url =
-                    $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
-                    $"{currentLoc.Longitude},{currentLoc.Latitude};{navigatingBusiness.Lng},{navigatingBusiness.Lat}" +
-                    $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
+                    if (navigatingBusiness != null)
+                    {
+                        // update directions 
+                        string url =
+                                    $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
+                                    $"{currentLoc.Longitude},{currentLoc.Latitude};{navigatingBusiness.Lng},{navigatingBusiness.Lat}" +
+                                    $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
 
-                    GetDirections(url, navigatingBusiness.Name);
+                        await GetDirrectionsAsync(url, navigatingBusiness.Name);
+                    }
+                    previousLoc = location;
                 }
             }
             await Task.Delay(2000); // Update every 2 seconds
@@ -512,7 +587,7 @@ public partial class MapPage : ContentPage
         await MapView.EvaluateJavaScriptAsync($"ShowBusinessInfo('', true, '{closestLoc.Name}')");    // Later change to ID instead of name
 
         navigatingBusiness = closestLoc;     // Set the navigating business to the closest one for future updates
-        GetDirections(url, closestLoc.Name);
+        await GetDirrectionsAsync(url, closestLoc.Name);
     }
 
 
@@ -522,7 +597,7 @@ public partial class MapPage : ContentPage
     /// IMPORTANT: ALWAYS UPDATE THE NAVIGATING BUSINESS BEFORE CALLING THIS FUNCTION
     /// </summary>
     /// <param name="url">URL containing the parameters of the itinerary</param>
-    async void GetDirections(string url, string _busName)
+    async Task GetDirrectionsAsync(string url, string _busName)
     {
         FreeRoamGrid.IsVisible = false;
         ItineraryGrid.IsVisible = true;
@@ -576,6 +651,7 @@ public partial class MapPage : ContentPage
 
         //Empty the route steps
         RouteSteps.Clear();
+        navigatingBusiness = null;     // Reset the navigating business since we're no longer navigating
 
         await MapView.EvaluateJavaScriptAsync($"clearRoute()");
     }
@@ -590,7 +666,7 @@ public partial class MapPage : ContentPage
         $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
 
         navigatingBusiness = _busName;     // Set the navigating business for future updates
-        GetDirections(url, _busName.Name);
+        await GetDirrectionsAsync(url, _busName.Name);
 
         //Close popup
         await MapView.EvaluateJavaScriptAsync($"changeToMinimized()");      // minimize the popup
@@ -779,7 +855,7 @@ public partial class MapPage : ContentPage
             ProfileText.Text = $"Welcome {CurrentUser.DisplayName}";
         }
     }
-    
+
     /// <summary>
     /// COMMENTED FOR SERIALIZE LOGIC, IF EVER WE WANT TO BRING IT BACK
     /// </summary>
@@ -853,7 +929,7 @@ public partial class MapPage : ContentPage
         {
             LoginPopup.IsVisible = false;
 
-            UpdateAppToProfile(pUser);
+            await UpdateAppToProfile(pUser);
             CurrentUser = pUser;
         }
     }
@@ -897,7 +973,7 @@ public partial class MapPage : ContentPage
         SignupPopup.IsVisible = false;
 
         if (needToUpdate)
-            UpdateAppToProfile(pNewProf);
+            await UpdateAppToProfile(pNewProf);
         CurrentUser = pNewProf;
 
     }
@@ -907,7 +983,7 @@ public partial class MapPage : ContentPage
         _authService.SignOut();
 
         // Clean variables
-        CurrentUser = null;
+        CurrentUser = new UserProfile();
 
         // Hide targeted texts
         ProfileNameText.IsVisible = false;
@@ -935,7 +1011,12 @@ public partial class MapPage : ContentPage
     //    }
     //}
 
-    void UpdateAppToProfile(UserProfile _userProf)
+    async Task AddAlertToDb(string _userID, AlertMarkerInfo _alertID)
+    {
+        await _db.AddAlertToDb(_userID, _alertID);
+    }
+
+    async Task UpdateAppToProfile(UserProfile _userProf)
     {
         //Update friends, settings, and other things according to the profile that just logged in
         //UI 
@@ -953,6 +1034,19 @@ public partial class MapPage : ContentPage
         {
             FriendsListCollection.Add(frnds);
         }
+
+        // updateJsWithNameAndID
+        await MapView.EvaluateJavaScriptAsync($"UpdateUserNameAndId('{_userProf.DisplayName}', '{currentFirebaseUserId}')");
+
+
+        // Update the visible alerts
+        var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId);
+
+        for (int i = 0; i < pAlerts.Count; i++)
+        {
+            await MapView.EvaluateJavaScriptAsync($"setAlertMarker('{pAlerts[i].MarkerID}', '{pAlerts[i].Note}', '{pAlerts[i].alertLoc.Longitude}', '{pAlerts[i].alertLoc.Latitude}', '{pAlerts[i].CreatedBy}', '{pAlerts[i].UserID}')");
+        }
+
     }
 
 
