@@ -365,6 +365,24 @@
 
             //------
 
+            // Superflux Cabana (Victoria)
+            const superfluxVic_b = new Business({
+                name: 'Superflux Cabana',
+                safeword: 'Super Foggy',
+                alternativeExit: 'No',
+                imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/superflux_star.png'
+            });
+
+            // Set opening and closing hours for superflux
+            superfluxVic_b.setOpeningHours('00:00', '16:00', '16:00', '16:00', '12:00', '12:00', '12:00');
+            superfluxVic_b.setClosingHours('00:00', '22:00', '22:00', '22:00', '23:00', '23:00', '21:00');
+
+            const sfcV = createMarker(
+                -123.3618611551704, 48.423767278894374, superfluxVic_b);
+            // Get info of the marker
+            superfluxVic_b.markerRef = sfcV;
+
+            //------
 
             // Vancouver Art Gallery
             const vag_b = new Business({

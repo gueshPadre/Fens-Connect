@@ -13,7 +13,6 @@ namespace FENS_Connect
     {
         FirestoreDb myDb;
 
-
         async Task ConnectToDb()
         {
             // 1. Get the current assembly where the JSON is embedded
@@ -68,6 +67,7 @@ namespace FENS_Connect
                 var pRef = myDb.Collection("Users").Document(_uID);
                 var pUser = new
                 {
+                    Name = _user.Name,
                     DisplayName = _user.DisplayName,
                     MyEmail = _user.UserEmail,
                     MyLocation = _user.UserLocation,
@@ -179,7 +179,7 @@ namespace FENS_Connect
         }
 
 
-        public async Task<List<MapPage.AlertMarkerInfo>> RetrieveAlertMarkers(string _userID)
+        public async Task<List<MapPage.AlertMarkerInfo>> RetrieveAlertMarkers(string _userID, bool _checkFriend = false)
         {
             List<MapPage.AlertMarkerInfo> alerts = new List<MapPage.AlertMarkerInfo>();
             try
@@ -208,10 +208,32 @@ namespace FENS_Connect
                     });
                 }
 
+                if (_checkFriend)
+                {
+                    List<string> friendIds = new List<string>();
+                    // check & Get Friends alerts
+                    var pFriendSnapShot = pDocRef.Collection("FriendList");
+                    var pFriendL = await pFriendSnapShot.GetSnapshotAsync();
+                    foreach (var doc in pFriendL.Documents)
+                    {
+                        if (!doc.Exists) continue;
+                        Dictionary<string, object> docDict = doc.ToDictionary();
+                        friendIds.Add((string)docDict["uID"]);
+                    }
+
+                    foreach (var friendId in friendIds)
+                    {
+                        var frndAlerts = await RetrieveAlertMarkers(friendId);
+                        alerts.AddRange(frndAlerts);
+
+                    }
+
+                }
+
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[FB] CRITICAL ERROR: {ex.Message}");
+                Debug.WriteLine($"[FB] CRITICAL ERROR in retrieving alerts: {ex.Message}");
                 if (ex.InnerException != null)
                 {
                     Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
@@ -233,6 +255,98 @@ namespace FENS_Connect
                 Debug.WriteLine($"[FB] NOT DELETED? {e.Message}");
             }
         }
+
+        /// <summary>
+        /// For now it's searching and automatically adding. Will change to make them separate
+        /// </summary>
+        /// <param name="_friendName">The Display Name we're searching for</param>
+        /// <returns>List of users found by ID (string)</returns>
+        /// <exception cref="Exception"></exception>
+        public async Task<List<string>> SearchFriend(string _friendName, bool _isCloseFriend)
+        {
+            try
+            {
+                List<string> foundPplId = new List<string>();
+                await ConnectToDb();
+                var pUsers = myDb.Collection("Users");
+                var pQuery = await pUsers.GetSnapshotAsync();
+                foreach (var doc in pQuery.Documents)
+                {
+                    Dictionary<string, object> docDict = doc.ToDictionary();
+                    var pDN = (string)docDict["DisplayName"];
+                    if (pDN == _friendName)
+                    {
+                        foundPplId.Add(doc.Id);
+                    }
+                }
+                return foundPplId;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FB] ERROR searching friend: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
+                }
+            }
+            throw new Exception("[FB] No user found with the name: {_friendName}");
+        }
+
+        /// <summary>
+        /// Retrieves the Display Name and Email of a user by their ID. 
+        /// Not fetching the entire profile cuz no need
+        /// </summary>
+        /// <param name="_id"></param>
+        /// <returns></returns>
+        public async Task<MapPage.UserProfile> GetNameAndEmail (string _id)
+        {
+            var pDocRef = myDb.Collection("Users").Document(_id);
+            var pUser = await pDocRef.GetSnapshotAsync();
+            Dictionary<string, object> pDict = pUser.ToDictionary();
+            var myUser = new MapPage.UserProfile();
+            var name = pDict["Name"].ToString();
+            if (name != null) myUser.Name = name;
+            var email = pDict["MyEmail"].ToString();
+            if (email != null) myUser.UserEmail = email;
+            return myUser;
+        }
+
+        public async Task<MapPage.FriendInfo> AddFriend(string _friendID, bool _isCloseFriend, string _userID)
+        {
+            // Get Friend Info
+            // LATER Add an approval system before fetching and adding the friend
+            try
+            {
+
+                var pUsers = myDb.Collection("Users");
+                var pQ = await pUsers.Document(_friendID).GetSnapshotAsync();
+                MapPage.FriendInfo myUserFriendProfile = new MapPage.FriendInfo();
+                Dictionary<string, object> docDict = pQ.ToDictionary();
+
+                myUserFriendProfile.Name = (string)docDict["Name"];
+                myUserFriendProfile.DisplayName = (string)docDict["DisplayName"];
+                myUserFriendProfile.isCloseFriend = _isCloseFriend;
+                myUserFriendProfile.UniqueId = _friendID;
+
+
+                var pFL = pUsers.Document(_userID).Collection("FriendList");
+                var p = new
+                {
+                    Name = myUserFriendProfile.Name,
+                    DisplayName = myUserFriendProfile.DisplayName,
+                    IsCloseFriend = myUserFriendProfile.isCloseFriend,
+                    uID = myUserFriendProfile.UniqueId
+                };
+
+                await pFL.Document(myUserFriendProfile.Name).SetAsync(p, SetOptions.MergeAll);
+                return myUserFriendProfile;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"[FB] ERROR adding friend: {ex.Message}");
+            }
+        }
+
 
     }
 }

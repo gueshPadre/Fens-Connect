@@ -1,7 +1,7 @@
+using Google.Cloud.Firestore;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text.Json;
-using Google.Cloud.Firestore;
 
 namespace FENS_Connect;
 
@@ -10,6 +10,7 @@ public partial class MapPage : ContentPage
 {
     public class UserProfile
     {
+        public string Name { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string UserEmail { get; set; } = string.Empty;
 
@@ -68,6 +69,24 @@ public partial class MapPage : ContentPage
                 }
             }
         }
+    }
+
+    public class FriendRequest
+    {
+        public string SenderId { get; set; } = string.Empty;
+        public string SenderDisplayName { get; set; } = string.Empty;
+        public Timestamp RequestTimestamp { get; set; } = Timestamp.FromDateTime(DateTime.UtcNow);
+    }
+
+
+    public class FriendSearchResult
+    {
+        public string NameFound { get; set; } = string.Empty;
+        public string IDFoundDisplayed { get; set; } = string.Empty;
+        public string EmailFound { get; set; } = string.Empty;
+        public bool CloseFrnd { get; set; } = false;
+        public string FullID { get; set; } = string.Empty;
+
 
     }
 
@@ -79,6 +98,7 @@ public partial class MapPage : ContentPage
 
     public ObservableCollection<RouteStep> RouteSteps { get; set; } = new ObservableCollection<RouteStep>();
     public ObservableCollection<FriendInfo> FriendsListCollection { get; set; } = new ObservableCollection<FriendInfo>();
+    public ObservableCollection<FriendSearchResult> PeopleFound { get; set; } = new ObservableCollection<FriendSearchResult>();
 
 
     string _city = string.Empty;
@@ -89,7 +109,7 @@ public partial class MapPage : ContentPage
 
     LocationMarkers? navigatingBusiness;     // the business that the user is currently navigating to, used to update the directions
 
-    public static UserProfile CurrentUser { get; private set; }
+    public static UserProfile? CurrentUser { get; private set; }
 
 
     public bool IsAlone { get; set; }
@@ -126,7 +146,6 @@ public partial class MapPage : ContentPage
         AloneModeState.Changed -= OnAloneModeChanged;
         AloneModeState.Changed += OnAloneModeChanged;
         SetAloneMode(AloneModeState.IsAlone, saveState: false);
-
         if (!string.IsNullOrEmpty(currentFirebaseUserId))
         {
             try
@@ -146,6 +165,32 @@ public partial class MapPage : ContentPage
         AloneModeState.Changed -= OnAloneModeChanged;
         base.OnDisappearing();
     }
+
+    protected override bool OnBackButtonPressed()
+    {
+        if (FriendsFound.IsVisible)
+        {
+            BackFromFriendsSearch(null, new EventArgs());
+            AddFriendMenuBorder.IsVisible = true;
+            return true;
+        }
+
+        if (AddFriendMenuBorder.IsVisible)
+        {
+            AddFriendMenuBorder.IsVisible = false;
+            return true;
+        }
+
+
+        if (FriendsMenu.IsVisible)
+        {
+            FriendsMenu.IsVisible = false;
+            return true;
+        }
+
+        return base.OnBackButtonPressed();
+    }
+
 
 
     async Task<UserProfile> GetUserInfo(string _currentUserId)
@@ -241,7 +286,7 @@ public partial class MapPage : ContentPage
                     }
                 }
             }
-            
+
         }
     }
 
@@ -488,7 +533,7 @@ public partial class MapPage : ContentPage
     async Task GoToLocation()
     {
         // Get my position      // COMMENTED FOR TESTING PURPOSES, UNCOMMENT WHEN TESTING ON DEVICE
-        //currentLoc = new Location(48.43001925275716, -123.41092919016779);     // Vancouver's coordinates for testing purposes
+        //currentLoc = new Location(48.43463846486408, -123.3831884197297);     // Vancouver's coordinates for testing purposes
         var _currentLoc = await Geolocation.GetLocationAsync(
             new GeolocationRequest
             {
@@ -527,7 +572,7 @@ public partial class MapPage : ContentPage
         await LoadAllMarkers();
 
         // don't await it beucase it'll stall
-        StartLocationTracking();
+        //StartLocationTracking();
     }
 
     private async Task StartLocationTracking()
@@ -818,27 +863,113 @@ public partial class MapPage : ContentPage
             Debug.WriteLine($"[TAP] Alerting specific friend with ID: {e.Parameter.ToString()}");
     }
 
-    private void OnCompletedAddFriendForm(object? sender, EventArgs e)
+    private async void OnCompletedAddFriendForm(object? sender, EventArgs e)
     {
-        //FriendsListCollection.Add(new FriendInfo
-        //{
-        //    Name = "Raj",
-        //    DisplayName = "TheNepaleseKing",
-        //    UniqueId = "Rpk1", // Find a good way to generate a unique friendID
-        //    isCloseFriend = true
-        //});
-        var uID = FriendIDEntry.Text;
+        var pDN = FriendIDEntry.Text.Trim();
         var pCloseFriend = CloseFriendSwitch.IsToggled;
-        FriendsListCollection.Add(new FriendInfo
+
+        var pFoundPpl = await _db.SearchFriend(pDN, pCloseFriend);
+
+        if (pFoundPpl.Count > 1)
         {
-            Name = $"{uID}",
-            DisplayName = "No Display Name",
-            UniqueId = uID, // Find a good way to generate a unique friendID
-            isCloseFriend = pCloseFriend
-        });
+
+            //Check in our friends if we have some, if so, exclude them from the list of people found
+            foreach (var frnd in FriendsListCollection)
+            {
+                if (pFoundPpl.Contains(frnd.UniqueId))
+                {
+                    pFoundPpl.Remove(frnd.UniqueId);
+                }
+            }
+
+            if(pFoundPpl.Count < 1)
+            {
+                var msg = $"No user found with: {pDN} that is not already your friend";
+                await DisplayErrorMsgAfterFriendSearch(msg, true);
+                return;
+            }
+            PeopleFoundDisplayName.Text = $"Many were found for {pDN}";
+
+            foreach (var pPpl in pFoundPpl)
+            {
+                var pUserFound = await _db.GetNameAndEmail(pPpl);
+                var frnd = new FriendSearchResult
+                {
+                    NameFound = pUserFound.Name,
+                    IDFoundDisplayed = $"ID: {pPpl.Substring(0, 12)}",
+                    EmailFound = $"Email: {pUserFound.UserEmail}",
+                    CloseFrnd = pCloseFriend,
+                    FullID = pPpl
+                };
+                PeopleFound.Add(frnd);
+            }
+            FriendsFound.IsVisible = true;
+        }
+        else if (pFoundPpl.Count > 0)
+        {
+            var frnd = await _db.AddFriend(pFoundPpl[0], pCloseFriend, currentFirebaseUserId);
+            FriendsListCollection.Add(frnd);
+            
+
+            //Update markers from friends
+            await GetAllVisibleAlerts();
+
+            var msg = $"You've successfully added {pDN} as a friend!";
+            await DisplayErrorMsgAfterFriendSearch(msg, false);
+            AddFriendMenuBorder.IsVisible = false;
+
+
+        }
+        else
+        {
+            // didn't find anyone
+            var msg = $"No user found with: {pDN}. \n It's case-sensitive, so make sure spelling is right.";
+            await DisplayErrorMsgAfterFriendSearch(msg,true);
+        }
+
+    }
+
+    private async Task DisplayErrorMsgAfterFriendSearch(string _msg, bool _isError)
+    {
+        Color pRed = Color.FromRgb(255,0,0);
+        Color pGreen = Color.FromRgb(58, 181, 74);
+        AddFriendErrorMsgLabel.IsVisible = true;
+        AddFriendErrorMsgLabel.TextColor = _isError ? pRed : pGreen;
+        AddFriendErrorMsgLabel.Text = _msg;
+
+        var pLength = _isError ? 5000 : 2000;
+        await Task.Delay(pLength);
+
+        AddFriendErrorMsgLabel.IsVisible = false;
+
+    }
+
+
+    private void BackFromFriendsSearch(object? sender, EventArgs e)
+    {
+        FriendsFound.IsVisible = false;
+        PeopleFound.Clear();        // reset
+    }
+
+
+    // When user finds the proper user to send the friend request
+    private async void OnProperFriendTapped(object? sender, TappedEventArgs e)
+    {
+        FriendInfo frnd = new FriendInfo();
+        if (e.Parameter is FriendSearchResult frn)
+        {
+            frnd = await _db.AddFriend(frn.FullID, frn.CloseFrnd, currentFirebaseUserId);
+            FriendsListCollection.Add(frnd);
+        }
+        FriendsFound.IsVisible = false;
+        PeopleFound.Clear();        // reset
+
+        var msg = $"{frnd.DisplayName} successfully added!";
+        await DisplayErrorMsgAfterFriendSearch(msg, false);
 
         AddFriendMenuBorder.IsVisible = false;
     }
+
 
     private async void OnProfileClicked(object? sender, EventArgs e)
     {
@@ -920,7 +1051,7 @@ public partial class MapPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Error", $"Login failed: {ex.Message}", "rip");
+            await DisplayAlertAsync("Oops", $"No account found", "Try again");
 
             //SendSignupErrorMsg("UNSuccessful!! ");
         }
@@ -959,16 +1090,16 @@ public partial class MapPage : ContentPage
         }
         UserProfile pNewProf = new UserProfile()
         {
+            Name = NameEntry.Text,
             DisplayName = DisplayNameEntry.Text,
             UserEmail = SignupEmailEntry.Text,
             UserLocation = new GeoPoint(currentLoc.Latitude, currentLoc.Longitude),
-            FriendList = new List<FriendInfo>() { new FriendInfo() { Name = "Raj", DisplayName = "TheNepaleseKing", UniqueId = "", isCloseFriend = true } }
         };
 
         currentFirebaseUserId = pId;
         await _db.ConnectUserToDb(pId, pNewProf, needToUpdate);
 
-        await DisplayAlertAsync("SUCCESS!", "You're in the DB!", "Yay");
+        await DisplayAlertAsync("SUCCESS!", "You're officially in!", "Yay");
 
         SignupPopup.IsVisible = false;
 
@@ -983,7 +1114,7 @@ public partial class MapPage : ContentPage
         _authService.SignOut();
 
         // Clean variables
-        CurrentUser = new UserProfile();
+        CurrentUser = null;
 
         // Hide targeted texts
         ProfileNameText.IsVisible = false;
@@ -1040,13 +1171,18 @@ public partial class MapPage : ContentPage
 
 
         // Update the visible alerts
-        var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId);
+        await GetAllVisibleAlerts();
+
+    }
+
+    async Task GetAllVisibleAlerts()
+    {
+        var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId, true);
 
         for (int i = 0; i < pAlerts.Count; i++)
         {
             await MapView.EvaluateJavaScriptAsync($"setAlertMarker('{pAlerts[i].MarkerID}', '{pAlerts[i].Note}', '{pAlerts[i].alertLoc.Longitude}', '{pAlerts[i].alertLoc.Latitude}', '{pAlerts[i].CreatedBy}', '{pAlerts[i].UserID}')");
         }
-
     }
 
 

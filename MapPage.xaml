@@ -857,10 +857,10 @@
                         HeightRequest="400">
                         <Grid
                             RowDefinitions="Auto,*,*,Auto"
-                            RowSpacing="5">
+                            RowSpacing="0">
                             <Label
                             x:Name="AddFriendTitle"
-                            Text="Add a friend!"
+                            Text="Add a friend by entering their display name!"
                             FontAttributes="Bold"
                             HorizontalTextAlignment="Center"
                             VerticalTextAlignment="Center"
@@ -870,14 +870,24 @@
                             <Entry
                                 x:Name="FriendIDEntry"
                                 Grid.Row="1"
-                                FontSize="18"
+                                FontSize="12"
                                 TextColor="Black"
-                                Placeholder="MyFriendID99"
+                                Placeholder="MyFriendDisplayName"
                                 PlaceholderColor="Black"
                                 BackgroundColor="LightGray"
                                 HorizontalTextAlignment="Center"
                                 HeightRequest="60"
                                 WidthRequest="200"/>
+                            <Label
+                                x:Name="AddFriendErrorMsgLabel"
+                                Grid.Row="2"
+                                Text="message text appear here"
+                                FontSize="10"
+                                TextColor="Red"
+                                HorizontalOptions="Center"
+                                IsVisible="False"
+                                HorizontalTextAlignment="Center"
+                                Margin="10,0"/>
                             <HorizontalStackLayout
                                 Grid.Row="2"
                                 HorizontalOptions="Center"
@@ -908,6 +918,102 @@
 
                         </Grid>
                     </Border>
+
+                    <Border                        
+                        x:Name="FriendsFound"
+                        Grid.RowSpan="2"
+                        BackgroundColor ="AliceBlue"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        StrokeShape="RoundRectangle 12"
+                        IsVisible="False"
+                        WidthRequest="250"
+                        HeightRequest="400">
+
+                        <Grid
+                            RowDefinitions="Auto, *, Auto">
+                            <Label
+                                x:Name="PeopleFoundDisplayName"
+                                Text="Many were found with that Display Name"
+                                FontSize="18"
+                                HorizontalOptions="Center"
+                                HorizontalTextAlignment="Center"
+                                FontAttributes="Italic,Bold"
+                                TextColor="Black"
+                                Padding="0,20"/>
+
+                            <CollectionView
+                                Grid.Row="1"
+                                ItemsSource="{Binding PeopleFound}"
+                                VerticalScrollBarVisibility="Always">
+
+                                <CollectionView.ItemTemplate>
+
+                                    <DataTemplate>
+
+                                        <VerticalStackLayout
+                                            Spacing="5">
+                                            <Border
+                                                Background="White">
+                                                <Grid
+                                                Padding="15,10"
+                                                RowDefinitions="*,*"
+                                                    RowSpacing="10">
+                                                    <Label
+                                                    Grid.Row="0"
+                                                    Text="{Binding NameFound}"
+                                                    TextColor="Black"
+                                                    FontSize="16"
+                                                    HeightRequest="20"
+                                                    HorizontalOptions="Center"
+                                                    FontAttributes="Bold"/>
+                                                    <Label
+                                                    Grid.Row="1"
+                                                    Text="{Binding IDFoundDisplayed}"
+                                                    TextColor="Black"
+                                                    FontSize="12"
+                                                    HeightRequest="15"
+                                                    HorizontalOptions="Center"
+                                                    HorizontalTextAlignment="Center"/>
+                                                </Grid>
+
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnProperFriendTapped"
+                                                                          NumberOfTapsRequired="2"
+                                                                          CommandParameter="{Binding .}"/>
+                                                </Border.GestureRecognizers>
+
+
+                                                    
+                                                    
+                                                    
+                                            </Border>
+                                        </VerticalStackLayout>
+
+                                    </DataTemplate>
+
+                                </CollectionView.ItemTemplate>
+
+
+                            </CollectionView>
+
+                            <Button
+                                Grid.Row="2"
+                                Text="Back"
+                                FontSize="14"
+                                TextColor="Black"
+                                BackgroundColor="#3ab54a"
+                                WidthRequest="120"
+                                Margin ="0,20"
+                                Clicked="BackFromFriendsSearch">
+                            </Button>
+
+
+                        </Grid>
+
+
+                    </Border>
+
                 </Grid>
 
             </Border>
@@ -1061,7 +1167,7 @@
             StrokeShape="RoundRectangle 12"
             IsVisible="False"
             WidthRequest="250"
-            HeightRequest="400">
+            HeightRequest="500">
 
             <Grid
                 RowDefinitions="Auto, *, Auto">
@@ -1076,7 +1182,7 @@
                 <VerticalStackLayout
                     Grid.Row="1"
                     Padding="5,20,0,0"
-                    Spacing="10">
+                    Spacing="5">
                     <VerticalStackLayout
                         Spacing="0">
                         <Label
@@ -1094,7 +1200,31 @@
                             TextColor="Black"
                             Background="LemonChiffon"
                             HorizontalOptions="Start"
-                            WidthRequest="170"/>
+                            WidthRequest="170"
+                            MinimumHeightRequest ="25"
+                            HeightRequest="35"/>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout
+                        Spacing="0">
+                        <Label
+                            Text="Name"
+                            FontSize="18"
+                            TextColor="DarkBlue"/>
+                        <Label
+                            Text="Your full name."
+                            FontSize="8"
+                            LineBreakMode="WordWrap"
+                            TextColor="DarkBlue"/>
+                        <Entry
+                            x:Name="NameEntry"
+                            FontSize="14"
+                            TextColor="Black"
+                            Background="LemonChiffon"
+                            HorizontalOptions="Start"
+                            WidthRequest="170"
+                            MinimumHeightRequest ="25"
+                            HeightRequest="35"/>
                     </VerticalStackLayout>
 
                     <VerticalStackLayout
@@ -1104,7 +1234,7 @@
                             FontSize="18"
                             TextColor="DarkBlue"/>
                         <Label
-                            Text="The name that your friends will see"
+                            Text="The name that your friends will see and will use to look you up"
                             FontSize="8"
                             LineBreakMode="WordWrap"
                             TextColor="DarkBlue"/>
@@ -1114,7 +1244,9 @@
                             TextColor="Black"
                             Background="LemonChiffon"
                             HorizontalOptions="Start"
-                            WidthRequest="170"/>
+                            WidthRequest="170"
+                            MinimumHeightRequest ="25"
+                            HeightRequest="35"/>
                     </VerticalStackLayout>
 
                     <VerticalStackLayout
@@ -1135,8 +1267,9 @@
                             Background="LemonChiffon"
                             HorizontalOptions="Start"
                             IsPassword="True"
-                            HeightRequest="40"
-                            WidthRequest="240"/>
+                            HeightRequest="35"
+                            WidthRequest="240"
+                            MinimumHeightRequest ="25"/>
                     </VerticalStackLayout>
 
 
