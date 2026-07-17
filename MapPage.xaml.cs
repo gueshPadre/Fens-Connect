@@ -1,4 +1,5 @@
 using Google.Cloud.Firestore;
+using Java.Net;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text.Json;
@@ -75,6 +76,7 @@ public partial class MapPage : ContentPage
     {
         public string SenderId { get; set; } = string.Empty;
         public string SenderDisplayName { get; set; } = string.Empty;
+        public string SenderName { get; set; } = string.Empty;
         public Timestamp RequestTimestamp { get; set; } = Timestamp.FromDateTime(DateTime.UtcNow);
     }
 
@@ -83,7 +85,6 @@ public partial class MapPage : ContentPage
     {
         public string NameFound { get; set; } = string.Empty;
         public string IDFoundDisplayed { get; set; } = string.Empty;
-        public string EmailFound { get; set; } = string.Empty;
         public bool CloseFrnd { get; set; } = false;
         public string FullID { get; set; } = string.Empty;
 
@@ -98,6 +99,7 @@ public partial class MapPage : ContentPage
 
     public ObservableCollection<RouteStep> RouteSteps { get; set; } = new ObservableCollection<RouteStep>();
     public ObservableCollection<FriendInfo> FriendsListCollection { get; set; } = new ObservableCollection<FriendInfo>();
+    public ObservableCollection<FriendRequest> FriendsRequestCollection { get; set; } = new ObservableCollection<FriendRequest>();
     public ObservableCollection<FriendSearchResult> PeopleFound { get; set; } = new ObservableCollection<FriendSearchResult>();
 
 
@@ -121,6 +123,12 @@ public partial class MapPage : ContentPage
             _city = Uri.UnescapeDataString(value ?? string.Empty);
         }
     }
+
+
+    private readonly Style selectedTabStyle = (Style)Application.Current!.Resources["SelectedTabStyle"];
+    private readonly Style UnselectedTabStyle = (Style)Application.Current!.Resources["UnselectedTabStyle"];
+    private readonly Style SelectedTabLabelStyle = (Style)Application.Current!.Resources["SelectedTabLabelStyle"];
+    private readonly Style UnselectedTabLabelStyle = (Style)Application.Current!.Resources["UnselectedTabLabelStyle"];
 
     string currentFirebaseUserId;
 
@@ -735,6 +743,10 @@ public partial class MapPage : ContentPage
     {
         // Show a list of friends
         FriendsMenu.IsVisible = !FriendsMenu.IsVisible;
+
+        // For the first time openning the popup, for some reason needs to do that to have the proper scale on the friends tab
+        OnShowRequestsListTap(null, null);
+        OnShowFriendsListTap(null, null);
     }
 
     private void GroupTabClicked(object? sender, TappedEventArgs e)
@@ -851,6 +863,11 @@ public partial class MapPage : ContentPage
     // Triggered when clicking on the "Add Friend" button in the friends menu
     private void AddFriendMenu(object? sender, TappedEventArgs e)
     {
+        if (string.IsNullOrEmpty(currentFirebaseUserId))
+        {
+            DisplayAlertAsync("Error", "You must be logged in to add friends.", "OK");
+            return;
+        }
         AddFriendMenuBorder.IsVisible = true;
         // reset entries
         FriendIDEntry.Text = "";
@@ -863,6 +880,12 @@ public partial class MapPage : ContentPage
             Debug.WriteLine($"[TAP] Alerting specific friend with ID: {e.Parameter.ToString()}");
     }
 
+    private async void SendFriendRequest(string _userID, string _friendID, bool _isCloseFrnd)
+    {
+        _db.SendRequest(_userID, _friendID, CurrentUser!.DisplayName, CurrentUser.Name, _isCloseFrnd);
+    }
+
+
     private async void OnCompletedAddFriendForm(object? sender, EventArgs e)
     {
         var pDN = FriendIDEntry.Text.Trim();
@@ -870,7 +893,7 @@ public partial class MapPage : ContentPage
 
         var pFoundPpl = await _db.SearchFriend(pDN, pCloseFriend);
 
-        if (pFoundPpl.Count > 1)
+        if (pFoundPpl.Count > 1)  // If we found more than one person with that display name
         {
 
             //Check in our friends if we have some, if so, exclude them from the list of people found
@@ -882,7 +905,8 @@ public partial class MapPage : ContentPage
                 }
             }
 
-            if(pFoundPpl.Count < 1)
+            // After we've removed the friends with same display Name from the list, check if we still have some people left
+            if (pFoundPpl.Count < 1)
             {
                 var msg = $"No user found with: {pDN} that is not already your friend";
                 await DisplayErrorMsgAfterFriendSearch(msg, true);
@@ -897,7 +921,6 @@ public partial class MapPage : ContentPage
                 {
                     NameFound = pUserFound.Name,
                     IDFoundDisplayed = $"ID: {pPpl.Substring(0, 12)}",
-                    EmailFound = $"Email: {pUserFound.UserEmail}",
                     CloseFrnd = pCloseFriend,
                     FullID = pPpl
                 };
@@ -905,33 +928,26 @@ public partial class MapPage : ContentPage
             }
             FriendsFound.IsVisible = true;
         }
-        else if (pFoundPpl.Count > 0)
+        else if (pFoundPpl.Count > 0)  // If we found exactly one person with that display name
         {
-            var frnd = await _db.AddFriend(pFoundPpl[0], pCloseFriend, currentFirebaseUserId);
-            FriendsListCollection.Add(frnd);
-            
+            SendFriendRequest(currentFirebaseUserId, pFoundPpl.First(), pCloseFriend);
 
-            //Update markers from friends
-            await GetAllVisibleAlerts();
-
-            var msg = $"You've successfully added {pDN} as a friend!";
+            var msg = $"You've successfully sent {pDN} a request!";
             await DisplayErrorMsgAfterFriendSearch(msg, false);
             AddFriendMenuBorder.IsVisible = false;
-
-
         }
         else
         {
             // didn't find anyone
             var msg = $"No user found with: {pDN}. \n It's case-sensitive, so make sure spelling is right.";
-            await DisplayErrorMsgAfterFriendSearch(msg,true);
+            await DisplayErrorMsgAfterFriendSearch(msg, true);
         }
 
     }
 
     private async Task DisplayErrorMsgAfterFriendSearch(string _msg, bool _isError)
     {
-        Color pRed = Color.FromRgb(255,0,0);
+        Color pRed = Color.FromRgb(255, 0, 0);
         Color pGreen = Color.FromRgb(58, 181, 74);
         AddFriendErrorMsgLabel.IsVisible = true;
         AddFriendErrorMsgLabel.TextColor = _isError ? pRed : pGreen;
@@ -955,19 +971,14 @@ public partial class MapPage : ContentPage
     // When user finds the proper user to send the friend request
     private async void OnProperFriendTapped(object? sender, TappedEventArgs e)
     {
-        FriendInfo frnd = new FriendInfo();
-        if (e.Parameter is FriendSearchResult frn)
-        {
-            frnd = await _db.AddFriend(frn.FullID, frn.CloseFrnd, currentFirebaseUserId);
-            FriendsListCollection.Add(frnd);
-        }
+        var pFrnRslt = e.Parameter as FriendSearchResult;
+        SendFriendRequest(currentFirebaseUserId, pFrnRslt!.FullID, pFrnRslt.CloseFrnd);
+
+        var msg = $"You've successfully sent {pFrnRslt.NameFound} a request!";
+        await DisplayErrorMsgAfterFriendSearch(msg, false);
+        AddFriendMenuBorder.IsVisible = false;
         FriendsFound.IsVisible = false;
         PeopleFound.Clear();        // reset
-
-        var msg = $"{frnd.DisplayName} successfully added!";
-        await DisplayErrorMsgAfterFriendSearch(msg, false);
-
-        AddFriendMenuBorder.IsVisible = false;
     }
 
 
@@ -1125,6 +1136,80 @@ public partial class MapPage : ContentPage
         }
     }
 
+    private void OnShowRequestsListTap(object? sender, TappedEventArgs e)
+    {
+        SelectRequests();
+        FriendsListCollectionView.IsVisible = false;
+        AddFriendButton.IsVisible = false;
+        FriendsTitleText.Text = "Friend Requests";
+
+        FriendRequestsCollectionView.IsVisible = true;
+    }
+
+    // Select the request tab in friends Menu
+    void SelectRequests()
+    {
+        RequestsTab.Style = selectedTabStyle;
+        RequestTabLabel.Style = SelectedTabLabelStyle;
+
+        FriendsTab.Style = UnselectedTabStyle;
+        FriendsTabLabel.Style = UnselectedTabLabelStyle;
+    }
+
+    private void OnShowFriendsListTap(object? sender, TappedEventArgs e)
+    {
+        SelectFriends();
+        FriendRequestsCollectionView.IsVisible = false;
+        FriendsTitleText.Text = "Friends";
+        AddFriendButton.IsVisible = true;
+
+        FriendsListCollectionView.IsVisible = true;
+    }
+
+    // Select the friends tab in friends Menu
+    void SelectFriends()
+    {
+        FriendsTab.Style = selectedTabStyle;
+        FriendsTabLabel.Style = SelectedTabLabelStyle;
+
+        RequestsTab.Style = UnselectedTabStyle;
+        RequestTabLabel.Style = UnselectedTabLabelStyle;
+    }
+
+    private async void OnAcceptFriendRequest(object? sender, TappedEventArgs e)
+    {
+        FriendRequest? fr = e.Parameter as FriendRequest;
+        var frnd = await _db.AddFriend(fr!.SenderId, false, currentFirebaseUserId);  // Automatically add the friend as a non-close friend when accepting the request
+        FriendsListCollection.Add(frnd);
+
+        // add this user to the other person's friend list as well
+        await _db.AddFriendForOtherUser(fr.SenderId, currentFirebaseUserId, CurrentUser!.Name, CurrentUser.DisplayName);
+
+
+        // Remove the accepted friend request from the collection
+        await _db.RemoveRequests(fr.SenderId, currentFirebaseUserId);
+        var pReqToRem = FriendsRequestCollection.Where(a => a.SenderId == fr.SenderId).ToList();
+        FriendsRequestCollection.Remove(pReqToRem.First());         // Should always only be one request from a specific user, so we can safely remove the first one
+        if (FriendsRequestCollection.Count < 1) { friendRqstCircleImg.IsVisible = false; }
+
+
+        OnShowFriendsListTap(null, null); // Refresh the friends list to show the updated state
+        //Update markers from friends
+        await GetAllVisibleAlerts();
+    }
+
+    private async void OnRefuseFriendRequest(object? sender, TappedEventArgs e)
+    {
+        FriendRequest? fr = e.Parameter as FriendRequest;
+        await _db.RemoveRequests(fr!.SenderId, currentFirebaseUserId);
+        var pReqToRem = FriendsRequestCollection.Where(a => a.SenderId == fr.SenderId).ToList();
+        FriendsRequestCollection.Remove(pReqToRem.First());         // Should always only be one request from a specific user, so we can safely remove the first one
+        if (FriendsRequestCollection.Count < 1) { friendRqstCircleImg.IsVisible = false; }
+
+
+        OnShowFriendsListTap(null, null); // Refresh the friends list to show the updated state
+    }
+
 
     //void SendSignupErrorMsg(string _msg, bool _isSuccessful = false)
     //{
@@ -1165,6 +1250,21 @@ public partial class MapPage : ContentPage
         {
             FriendsListCollection.Add(frnds);
         }
+
+        //Get Friend requests
+        List<FriendRequest> pFriendReqs = await _db.GetFriendRequests(currentFirebaseUserId);
+        //Show the friend requests circle in the UI
+        friendRqstCircleImg.IsVisible = pFriendReqs.Count > 0;
+
+        if (pFriendReqs.Count > 0)
+        {
+            // Get friend requests
+            for (int i = 0; i < pFriendReqs.Count; i++)
+            {
+                FriendsRequestCollection.Add(pFriendReqs[i]);
+            }
+        }
+
 
         // updateJsWithNameAndID
         await MapView.EvaluateJavaScriptAsync($"UpdateUserNameAndId('{_userProf.DisplayName}', '{currentFirebaseUserId}')");

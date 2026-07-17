@@ -122,6 +122,9 @@ namespace FENS_Connect
             var name = pDict["DisplayName"].ToString();
             if (name != null) myUser.DisplayName = name;
 
+            var pName = pDict["Name"].ToString();
+            if (pName != null) myUser.Name = pName;
+
             var email = pDict["MyEmail"].ToString();
             if (email != null) myUser.UserEmail = email;
 
@@ -289,8 +292,82 @@ namespace FENS_Connect
                     Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
                 }
             }
-            throw new Exception("[FB] No user found with the name: {_friendName}");
+            return new List<string>(); // return empty list if no users found
+            //throw new Exception("[FB] No user found with the name: {_friendName}");
         }
+
+        public async void SendRequest(string _userID, string _friendID, string _friendDN, string _friendName, bool _isCloseFrnd)
+        {
+            try
+            {
+                // Add the request on the firend's side
+                var pDocRef = myDb.Collection("Users").Document(_friendID);
+                var pFriendReq = pDocRef.Collection("FriendRequests");
+                Timestamp time = Timestamp.FromDateTime(DateTime.UtcNow);
+                var pRequest = new
+                {
+                    fromID = _userID,
+                    fromDisplayName = _friendDN,
+                    fromName = _friendName,
+                    RequestTime = time
+                };
+                await pFriendReq.Document(_userID).SetAsync(pRequest, SetOptions.MergeAll);
+
+                //Add the request on the user's side
+                var pUserRef = myDb.Collection("Users").Document(_userID);
+                var pReq = pUserRef.Collection("friendRqstSent");
+
+                var pRequestSent = new
+                {
+                    toID = _friendID,
+                    isCloseFriend = _isCloseFrnd
+                };
+                await pReq.Document(_friendID).SetAsync(pRequestSent, SetOptions.MergeAll);
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FB] ERROR sending friend request: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
+                }
+            }
+        }
+
+        public async Task<List<MapPage.FriendRequest>> GetFriendRequests(string _userID)
+        {
+            try
+            {
+                List<MapPage.FriendRequest> friendRequests = new List<MapPage.FriendRequest>();
+                var pDocRef = myDb.Collection("Users").Document(_userID);
+                var pFriendReq = pDocRef.Collection("FriendRequests");
+
+                var pReq = await pFriendReq.GetSnapshotAsync();
+                foreach (var r in pReq.Documents)
+                {
+                    MapPage.FriendRequest myRequest = new MapPage.FriendRequest();
+                    Dictionary<string, object> docDict = r.ToDictionary();
+                    myRequest.SenderDisplayName = (string)docDict["fromDisplayName"];
+                    myRequest.SenderId = (string)docDict["fromID"];
+                    myRequest.SenderName = (string)docDict["fromName"];
+
+                    friendRequests.Add(myRequest);
+                }
+
+                return friendRequests;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FB] ERROR getting friend requests: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
+                }
+            }
+            return new List<MapPage.FriendRequest>(); // return empty list if no requests found
+        }
+
 
         /// <summary>
         /// Retrieves the Display Name and Email of a user by their ID. 
@@ -298,7 +375,7 @@ namespace FENS_Connect
         /// </summary>
         /// <param name="_id"></param>
         /// <returns></returns>
-        public async Task<MapPage.UserProfile> GetNameAndEmail (string _id)
+        public async Task<MapPage.UserProfile> GetNameAndEmail(string _id)
         {
             var pDocRef = myDb.Collection("Users").Document(_id);
             var pUser = await pDocRef.GetSnapshotAsync();
@@ -314,10 +391,8 @@ namespace FENS_Connect
         public async Task<MapPage.FriendInfo> AddFriend(string _friendID, bool _isCloseFriend, string _userID)
         {
             // Get Friend Info
-            // LATER Add an approval system before fetching and adding the friend
             try
             {
-
                 var pUsers = myDb.Collection("Users");
                 var pQ = await pUsers.Document(_friendID).GetSnapshotAsync();
                 MapPage.FriendInfo myUserFriendProfile = new MapPage.FriendInfo();
@@ -347,6 +422,54 @@ namespace FENS_Connect
             }
         }
 
+        public async Task AddFriendForOtherUser(string _senderID, string _userID, string _Name, string _DN)
+        {
+            try
+            {
+                // get the close friend status from the sender's friend request sent collection
+                MapPage.FriendInfo friendUserFriendProfile = new MapPage.FriendInfo();
+                var pUsers = myDb.Collection("Users");
+                var pReqColl = pUsers.Document(_senderID).Collection("friendRqstSent");
+                var pCollQ = await pReqColl.Document(_userID).GetSnapshotAsync();
+
+                Dictionary<string, object> docDict = pCollQ.ToDictionary();
+                friendUserFriendProfile.isCloseFriend = (bool)docDict["isCloseFriend"];
+
+                // Add the friend to the senders friendlist
+                var pFL = pUsers.Document(_senderID).Collection("FriendList");
+                var p = new
+                {
+                    Name = _Name,
+                    DisplayName = _DN,
+                    IsCloseFriend = friendUserFriendProfile.isCloseFriend,
+                    uID = _userID
+                };
+
+                await pFL.Document(_Name).SetAsync(p, SetOptions.MergeAll);
+
+            }
+            catch (Exception e) 
+            {
+                Debug.WriteLine($"[FB] ERRORR SOMEWHERE: {e.Message}");
+            }
+        }
+
+
+        /// <summary>
+        /// Removes the requests from both the sender and the user. This is called after a friend request is accepted or rejected.
+        /// </summary>
+        /// <param name="_senderID"></param>
+        /// <param name="_userID"></param>
+        /// <returns></returns>
+        public async Task RemoveRequests(string _senderID, string _userID)
+        {
+            // Remove the request from the user's side
+            var pUsers = myDb.Collection("Users");
+            await pUsers.Document(_userID).Collection("FriendRequests").Document(_senderID).DeleteAsync();
+
+            //Remove the request from the sender's side
+            await pUsers.Document(_senderID).Collection("friendRqstSent").Document(_userID).DeleteAsync();
+        }
 
     }
 }

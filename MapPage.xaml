@@ -5,8 +5,6 @@
              Shell.NavBarIsVisible="False"
              Title="Map">
 
-
-
     <Grid RowDefinitions="Auto,Auto,*,Auto"
           Padding="10"
           RowSpacing="15">
@@ -261,7 +259,7 @@
             ColumnDefinitions="*,*,*">
             <Border
                 Grid.Row="1"
-                HeightRequest="30"
+                HeightRequest="60"
                 StrokeThickness="0"
                 BackgroundColor="Transparent">
 
@@ -269,13 +267,29 @@
                     <TapGestureRecognizer Tapped="FriendTabClicked" />
                 </Border.GestureRecognizers>
 
-                <Label
+                <Grid
+                    RowDefinitions="*,*"
+                    ColumnDefinitions="*,auto"
+                    ColumnSpacing="0">
+                    <Label
                     Grid.Row="1"
+                    Grid.ColumnSpan="2"
                     x:Name="friendTab"
                     Text="Friends"
                     FontSize="18"
                     TextColor="White"
-                    Style="{StaticResource SubHeadline}" />
+                    Style="{StaticResource SubHeadline}"/>
+
+                    <Image                    
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    x:Name="friendRqstCircleImg"
+                    Margin="0,35,10,0"
+                    Source="notifcircle.png"
+                    HeightRequest="25"
+                    WidthRequest="25"
+                    IsVisible="False"/>
+                </Grid>
 
             </Border>
             <Image
@@ -289,7 +303,7 @@
             <Border
                 Grid.Row="1"
                 Grid.Column="1"
-                HeightRequest="30"
+                HeightRequest="60"
                 StrokeThickness="0"
                 BackgroundColor="Transparent">
 
@@ -297,13 +311,29 @@
                     <TapGestureRecognizer Tapped="GroupTabClicked" />
                 </Border.GestureRecognizers>
 
-                <Label
+                <Grid
+                    RowDefinitions="*,*"
+                    ColumnDefinitions="*,auto"
+                    ColumnSpacing="0">
+                    <Label
+                    Grid.Row="1"
+                    Grid.ColumnSpan="2"
                     x:Name="GroupTab"
                     Text="Group"
                     FontSize="18"
                     TextColor="White"
                     Style="{StaticResource SubHeadline}" />
 
+                    <Image                    
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    x:Name="grpNotifCircleImg"
+                    Margin="0,35,15,0"
+                    Source="notifcircle.png"
+                    HeightRequest="25"
+                    WidthRequest="25"
+                    IsVisible="False"/>
+                </Grid>
             </Border>
             <Image
                 Grid.Column="1"
@@ -316,7 +346,7 @@
             <Border
                 Grid.Row="1"
                 Grid.Column="3"
-                HeightRequest="30"
+                HeightRequest="60"
                 StrokeThickness="0"
                 BackgroundColor="Transparent">
 
@@ -324,14 +354,30 @@
                     <TapGestureRecognizer Tapped="OutTabClicked" />
                 </Border.GestureRecognizers>
 
-                <Label
+                <Grid
+                    RowDefinitions="*,*"
+                    ColumnDefinitions="*,auto"
+                    ColumnSpacing="0">
+                    <Label
+                    Grid.Row="1"
+                    Grid.ColumnSpan="2"
                     x:Name="OutTab"
-                    Text="What's out?"
+                    Text="Going out?"
                     FontSize="18"
-                    Padding="15,0,0,0"
+                    
                     TextColor="White"
                     Style="{StaticResource SubHeadline}" />
 
+                    <Image                    
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    x:Name="outNotifCircleImg"
+                    Margin="0,30,0,0"
+                    Source="notifcircle.png"
+                    HeightRequest="25"
+                    WidthRequest="25"
+                    IsVisible="False"/>
+                </Grid>
             </Border>
         </Grid>
 
@@ -750,17 +796,21 @@
                 StrokeShape="RoundRectangle 40">
 
                 <Grid
-                    RowDefinitions="Auto, *">
+                    RowDefinitions="Auto, *,Auto"
+                    ColumnDefinitions="*,*">
                     <HorizontalStackLayout
+                        Grid.ColumnSpan="2"
                         Padding="0,30,0,0"
                         HorizontalOptions="Center"
                         Spacing="10">
                         <Label
+                        x:Name="FriendsTitleText"
                         Text="Friends"
                         TextColor="Black"
                         FontSize="30"
                         FontAttributes="Bold"/>
                         <Border
+                            x:Name="AddFriendButton"
                             WidthRequest="30"
                             HeightRequest="30"
                             StrokeThickness="0"
@@ -779,7 +829,10 @@
                         </Border>
                     </HorizontalStackLayout>
                     <CollectionView
+                        x:Name="FriendsListCollectionView"
+                        IsVisible="True"
                         Grid.Row="1"
+                        Grid.ColumnSpan="2"
                         ItemsSource="{Binding FriendsListCollection}"
                         VerticalScrollBarVisibility="Always">
 
@@ -790,6 +843,7 @@
                                 <VerticalStackLayout
                                     Spacing="5">
                                     <Grid
+                                        Grid.ColumnSpan="2"
                                         Padding="10,30,10,0"
                                         RowDefinitions="Auto,*"
                                         ColumnDefinitions="Auto,*,Auto">
@@ -848,6 +902,7 @@
                     <Border
                         x:Name="AddFriendMenuBorder"
                         Grid.RowSpan="2"
+                        Grid.ColumnSpan="2"
                         BackgroundColor ="FloralWhite"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
@@ -922,6 +977,7 @@
                     <Border                        
                         x:Name="FriendsFound"
                         Grid.RowSpan="2"
+                        Grid.ColumnSpan="2"
                         BackgroundColor ="AliceBlue"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
@@ -984,9 +1040,9 @@
                                                 </Border.GestureRecognizers>
 
 
-                                                    
-                                                    
-                                                    
+
+
+
                                             </Border>
                                         </VerticalStackLayout>
 
@@ -1014,6 +1070,129 @@
 
                     </Border>
 
+                    <Border
+                        Grid.Row="2"
+                        HeightRequest="50"
+                        x:Name="FriendsTab"
+                        Style="{StaticResource SelectedTabStyle}">
+
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnShowFriendsListTap"/>
+                        </Border.GestureRecognizers>
+
+                    </Border>
+                    <Label
+                        Grid.Row="2"
+                        x:Name="FriendsTabLabel"
+                        Text="Friends"
+                        Style="{StaticResource SelectedTabLabelStyle}"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        VerticalTextAlignment="Center"/>
+
+                    <Border
+                        x:Name="RequestsTab"
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        HeightRequest="50"
+                        Style="{StaticResource UnselectedTabStyle}">
+
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnShowRequestsListTap"/>
+                        </Border.GestureRecognizers>
+
+                    </Border>
+
+                    <Label
+                        x:Name="RequestTabLabel"
+                        Grid.Column="1"
+                        Text="Requests"
+                        Style="{StaticResource UnselectedTabLabelStyle}"
+                        Grid.Row="2"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"
+                        VerticalTextAlignment="Center"/>
+                    
+                    <CollectionView
+                    x:Name="FriendRequestsCollectionView"
+                    Grid.Row="1"
+                    Grid.ColumnSpan="2"
+                    Margin="10,20"
+                    VerticalOptions="Start"
+                    IsVisible="False"
+                    ItemsSource="{Binding FriendsRequestCollection}"
+                    VerticalScrollBarVisibility="Always">
+
+                        <CollectionView.ItemTemplate>
+
+                            <DataTemplate>
+
+                                <Grid
+                                    Padding="20,10"
+                                    RowDefinitions="Auto,Auto"
+                                    ColumnDefinitions="*,Auto">
+
+                                <VerticalStackLayout
+                                    Spacing="5">
+                                        <Label
+                                            Grid.Row="0"
+                                            Grid.Column="0"
+                                            Text="{Binding SenderDisplayName}"
+                                            FontAttributes="Bold"
+                                            TextColor="Black"
+                                            FontSize="20"/>
+                                        <Label
+                                            Grid.Row="1"
+                                            Grid.Column="0"
+                                            Text="{Binding SenderName}"
+                                            TextColor="Black"
+                                            FontSize="12"/>
+                                </VerticalStackLayout>
+
+                                        <Grid
+                                            Grid.Column="1"
+                                            ColumnSpacing="20"
+                                            ColumnDefinitions="*,*">
+                                        <Image
+                                                Grid.Column="0"
+                                                Source="checkmark.png"
+                                                WidthRequest="30"
+                                                HeightRequest="30">
+
+                                            <Image.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnAcceptFriendRequest"
+                                                                      CommandParameter="{Binding .}"/>
+                                            </Image.GestureRecognizers>
+                                            
+                                        </Image>
+
+                                        <Image
+                                                Grid.Column="1"
+                                                Source="redx.png"
+                                                WidthRequest="30"
+                                                HeightRequest="30">
+
+                                            <Image.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnRefuseFriendRequest"
+                                                                      CommandParameter="{Binding .}"/>
+                                            </Image.GestureRecognizers>
+                                        </Image>
+                                    </Grid>
+
+                                    
+                                    
+                                    
+                                
+                                </Grid>
+                            </DataTemplate>
+                            
+                        </CollectionView.ItemTemplate>
+                        
+                        
+                    </CollectionView>
+                    
+                    
+                    
                 </Grid>
 
             </Border>
