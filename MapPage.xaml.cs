@@ -1,8 +1,10 @@
 using Google.Cloud.Firestore;
-using Java.Net;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Windows.Input;
 
 namespace FENS_Connect;
 
@@ -44,7 +46,7 @@ public partial class MapPage : ContentPage
         public string Distance { get; set; } = string.Empty;
     }
 
-    public class FriendInfo
+    public class FriendInfo : INotifyPropertyChanged
     {
         private bool _isCloseFriend;
         private string starImgSource = "star.png";
@@ -70,6 +72,30 @@ public partial class MapPage : ContentPage
                 }
             }
         }
+        private bool _showRemoveButton;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public bool ShowRemoveButton
+        {
+            get => _showRemoveButton;
+            set
+            {
+                if (_showRemoveButton != value)
+                {   // When value changes
+                    _showRemoveButton = value;
+
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+
     }
 
     public class FriendRequest
@@ -108,6 +134,8 @@ public partial class MapPage : ContentPage
     Location currentLoc;
     string currentCity = string.Empty;
     LocationMarkers closestLoc;
+    private CancellationTokenSource? _holdCancellationTokenSource;
+    private const int touchHoldTime = 500; // Time in milliseconds to consider a touch as a long press
 
     LocationMarkers? navigatingBusiness;     // the business that the user is currently navigating to, used to update the directions
 
@@ -1210,6 +1238,64 @@ public partial class MapPage : ContentPage
         OnShowFriendsListTap(null, null); // Refresh the friends list to show the updated state
     }
 
+    // Called when long pressed on the name in list
+    private async void OnLongPressRemoveFriendEnter(object? sender, PointerEventArgs e)
+    {
+        // Cancel any existing hold timer just in case
+        _holdCancellationTokenSource?.Cancel();
+        _holdCancellationTokenSource = new CancellationTokenSource();
+        var token = _holdCancellationTokenSource.Token;
+
+        try
+        {
+            // Wait for the required hold duration
+            await Task.Delay(touchHoldTime, token);
+
+            // If we reached here without getting cancelled, the user successfully held it!
+            if (!token.IsCancellationRequested)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    if (sender is Border brd)
+                    {
+                        if (brd.BindingContext is FriendInfo friend)
+                        {
+                            var targetFrnd = FriendsListCollection.FirstOrDefault(f => f.UniqueId == friend.UniqueId);
+                            if (targetFrnd != null)
+                            {
+                                targetFrnd.ShowRemoveButton = !targetFrnd.ShowRemoveButton;
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Touch was released too quickly; do nothing
+        }
+    }
+
+    private void OnLongPressRemoveFriendReleased(object? sender, PointerEventArgs e)
+    {
+        _holdCancellationTokenSource?.Cancel();
+    }
+
+
+
+    // Called when remove button is clicked in the list selection
+    private async void OnRemoveButtonClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button friendInfoButton)
+        {
+            var param = friendInfoButton.CommandParameter as FriendInfo;
+            CurrentUser.FriendList.Remove(CurrentUser!.FriendList.Find(f => f.UniqueId == param!.UniqueId));
+            await _db.RemoveFriend(currentFirebaseUserId, param!.Name);
+
+            await UpdateAppToProfile(CurrentUser);
+            Debug.WriteLine($"[TAP] friend removed");
+        }
+    }
 
     //void SendSignupErrorMsg(string _msg, bool _isSuccessful = false)
     //{
@@ -1245,6 +1331,7 @@ public partial class MapPage : ContentPage
         ProfileIDShow.Text = $"Your ID: \n{currentFirebaseUserId}";
         ProfileEmailShow.Text = $"Your Email: \n{_userProf.UserEmail}";
 
+        FriendsListCollection.Clear();      // reset the friends list collection to avoid duplicates
         //Friends
         foreach (var frnds in _userProf.FriendList)
         {

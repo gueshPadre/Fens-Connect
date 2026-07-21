@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="FENS_Connect.MapPage"
              Shell.NavBarIsVisible="False"
              Title="Map">
@@ -840,59 +841,88 @@
 
                             <DataTemplate>
 
-                                <VerticalStackLayout
+                                <Border
+                                    Background="Transparent"
+                                    Stroke="Transparent">
+
+                                    <Border.GestureRecognizers>
+                                        <PointerGestureRecognizer
+                                            PointerPressed="OnLongPressRemoveFriendEnter"
+                                            PointerReleased="OnLongPressRemoveFriendReleased"/>
+                                    </Border.GestureRecognizers>
+
+                                    <VerticalStackLayout
                                     Spacing="5">
-                                    <Grid
+                                        <Grid
                                         Grid.ColumnSpan="2"
                                         Padding="10,30,10,0"
                                         RowDefinitions="Auto,*"
                                         ColumnDefinitions="Auto,*,Auto">
-                                        <Image
+                                            <Image
                                             WidthRequest="25"
                                             HeightRequest="25"
                                             Grid.RowSpan="2"
                                             Source="addtogrp.png"
                                             x:Name="InviteToGrpImg"/>
-                                        <HorizontalStackLayout
+                                            <HorizontalStackLayout
                                             Grid.Column="1"
                                             HorizontalOptions="Center"
                                             Spacing="5">
-                                            <Label
+                                                <Label
                                                 Grid.Row="0"
                                                 Text="{Binding Name}"
                                                 FontAttributes="Bold"
                                                 TextColor="Black"
                                                 FontSize="23"/>
-                                            <Image
+                                                <Image
                                                 Grid.Column="1"
                                                 WidthRequest="20"
                                                 HeightRequest="20"
                                                 Source="{Binding StarImgSource}"/>
-                                        </HorizontalStackLayout>
-                                        <Label
+                                            </HorizontalStackLayout>
+                                            <Label
                                             Grid.Column="1"
                                             Grid.Row="1"
                                             Text="{Binding DisplayName}"
                                             HorizontalOptions="Center"
                                             TextColor="Black"
                                             FontSize="12"/>
-                                        <Image
-                                            Grid.Column="2"
+                                            <Grid
+                                            Grid.Column="2">
+                                            <Image
+                                            x:Name="AlertFriendImage"
                                             WidthRequest="30"
                                             HeightRequest="30"
                                             Grid.RowSpan="2"
                                             Source="alertfriends2.png">
 
-                                            <Image.GestureRecognizers>
-                                                <TapGestureRecognizer Tapped="AlertSpecificFriend"
+                                                <Image.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="AlertSpecificFriend"
                                                                       CommandParameter="{Binding UniqueId}"/>
-                                            </Image.GestureRecognizers>
+                                                </Image.GestureRecognizers>
 
-                                        </Image>
+                                            </Image>
+                                                <Button
+                                                    Text="Remove"
+                                                    BackgroundColor="Red"
+                                                    FontSize="10"
+                                                    Padding="0"
+                                                    Margin="0"
+                                                    FontAttributes="Bold"
+                                                    WidthRequest="45"
+                                                    MinimumHeightRequest="20"
+                                                    HeightRequest="30"
+                                                    Clicked="OnRemoveButtonClicked"
+                                                    CommandParameter="{Binding .}"
+                                                    IsVisible="{Binding ShowRemoveButton}"/>
 
 
-                                    </Grid>
-                                </VerticalStackLayout>
+                                            </Grid>
+
+
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
                             </DataTemplate>
 
                         </CollectionView.ItemTemplate>
@@ -1112,7 +1142,7 @@
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
                         VerticalTextAlignment="Center"/>
-                    
+
                     <CollectionView
                     x:Name="FriendRequestsCollectionView"
                     Grid.Row="1"
@@ -1132,7 +1162,7 @@
                                     RowDefinitions="Auto,Auto"
                                     ColumnDefinitions="*,Auto">
 
-                                <VerticalStackLayout
+                                    <VerticalStackLayout
                                     Spacing="5">
                                         <Label
                                             Grid.Row="0"
@@ -1147,9 +1177,9 @@
                                             Text="{Binding SenderName}"
                                             TextColor="Black"
                                             FontSize="12"/>
-                                </VerticalStackLayout>
+                                    </VerticalStackLayout>
 
-                                        <Grid
+                                    <Grid
                                             Grid.Column="1"
                                             ColumnSpacing="20"
                                             ColumnDefinitions="*,*">
@@ -1163,7 +1193,7 @@
                                                 <TapGestureRecognizer Tapped="OnAcceptFriendRequest"
                                                                       CommandParameter="{Binding .}"/>
                                             </Image.GestureRecognizers>
-                                            
+
                                         </Image>
 
                                         <Image
@@ -1179,20 +1209,20 @@
                                         </Image>
                                     </Grid>
 
-                                    
-                                    
-                                    
-                                
+
+
+
+
                                 </Grid>
                             </DataTemplate>
-                            
+
                         </CollectionView.ItemTemplate>
-                        
-                        
+
+
                     </CollectionView>
-                    
-                    
-                    
+
+
+
                 </Grid>
 
             </Border>

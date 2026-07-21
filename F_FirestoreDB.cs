@@ -471,5 +471,21 @@ namespace FENS_Connect
             await pUsers.Document(_senderID).Collection("friendRqstSent").Document(_userID).DeleteAsync();
         }
 
+
+        // Remove friend from db
+        public async Task RemoveFriend(string _userID, string _FullName)
+        {
+            DocumentReference pDocRef = myDb.Collection("Users").Document(_userID)
+                .Collection("FriendList").Document(_FullName);
+            try
+            {
+                await pDocRef.DeleteAsync();
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"[FB] NOT DELETED? {e.Message}");
+            }
+        }
+
     }
 }
