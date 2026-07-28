@@ -95,6 +95,17 @@ namespace FENS_Connect
                         await pFriendRef.Document(f.Name).SetAsync(frndData);
                 }
 
+                var pSettingsRef = pRef.Collection("UserSettings");
+                if(_user.UserSettings == null)
+                {
+                    _user.UserSettings = new Dictionary<string, bool>();
+                    _user.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY] = true; // default value
+                }
+                var pSettingsData = new
+                {
+                    AlertsShownToFriends = _user.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY]
+                };
+                await pSettingsRef.Document("GeneralSettings").SetAsync(pSettingsData, SetOptions.MergeAll);
             }
             catch (Exception ex)
             {
@@ -145,7 +156,47 @@ namespace FENS_Connect
                 myUser.FriendList.Add(myUserFriendProfile);
             }
 
+            var pSettingsSnapShot = await pDocRef.Collection("UserSettings").GetSnapshotAsync();
+
+            foreach (var set in pSettingsSnapShot.Documents)
+            {
+                Dictionary<string, object> setDict = set.ToDictionary();
+                myUser.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY] = (bool)setDict["AlertsShownToFriends"];
+            }
+
             return myUser;
+        }
+
+
+        public async void UpdateSettings(string _uID)
+        {
+            var pRef = myDb.Collection("Users").Document(_uID);
+
+            var pSettingsRef = pRef.Collection("UserSettings");
+            // Initialize the variable on the DB. just set to true by default
+            var pSettingsData = new
+            {
+                AlertsShownToFriends = true
+            };
+            await pSettingsRef.Document("GeneralSettings").SetAsync(pSettingsData, SetOptions.MergeAll);
+        }
+
+        /// <summary>
+        /// With these parameters, the database updates the settings with the settings of the existing user
+        /// </summary>
+        /// <param name="_uID"></param>
+        /// <param name="_user"></param>
+        public async void UpdateSettings(string _uID, MapPage.UserProfile _user)
+        {
+            var pRef = myDb.Collection("Users").Document(_uID);
+
+            var pSettingsRef = pRef.Collection("UserSettings");
+            // Initialize the variable on the DB. just set to true by default
+            var pSettingsData = new
+            {
+                AlertsShownToFriends = _user.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY]
+            };
+            await pSettingsRef.Document("GeneralSettings").SetAsync(pSettingsData, SetOptions.MergeAll);
         }
 
 
@@ -165,7 +216,8 @@ namespace FENS_Connect
                     Note = _alertID.Note,
                     AlertOwner = _alertID.CreatedBy,
                     alertLocation = _alertID.alertLoc,
-                    UserId = _alertID.UserID
+                    UserId = _alertID.UserID,
+                    AvailableToFriends = _alertID.AvailableToFriends
                 };
 
                 await pAlerts.Document(_alertID.MarkerID).SetAsync(pUserAlert, SetOptions.MergeAll);
@@ -182,7 +234,7 @@ namespace FENS_Connect
         }
 
 
-        public async Task<List<MapPage.AlertMarkerInfo>> RetrieveAlertMarkers(string _userID, bool _checkFriend = false)
+        public async Task<List<MapPage.AlertMarkerInfo>> RetrieveAlertMarkers(string _userID, bool _checkFriend = false, bool _includeNonAvailables = false)
         {
             List<MapPage.AlertMarkerInfo> alerts = new List<MapPage.AlertMarkerInfo>();
             try
@@ -199,6 +251,15 @@ namespace FENS_Connect
                     string createdBy = (string)docDict["AlertOwner"];
                     GeoPoint alertLoc = (GeoPoint)docDict["alertLocation"];
                     string userID = (string)docDict["UserId"];
+                    bool availableToFriends = (bool)docDict["AvailableToFriends"];
+
+                    if (!_includeNonAvailables)  // If we're not checking friends, we only want to add alerts that are available from our friends
+                    {
+                        if(availableToFriends == false)
+                        {
+                            continue; // Skip this alert if it's not available to friends
+                        }
+                    }
                     //Debug.WriteLine($"[FB] Retrieved Alert ID: {alertID}, and {note}");
 
                     alerts.Add(new MapPage.AlertMarkerInfo
@@ -207,7 +268,8 @@ namespace FENS_Connect
                         Note = note,
                         CreatedBy = createdBy,
                         alertLoc = alertLoc,
-                        UserID = userID
+                        UserID = userID,
+                        AvailableToFriends = availableToFriends
                     });
                 }
 
@@ -224,6 +286,7 @@ namespace FENS_Connect
                         friendIds.Add((string)docDict["uID"]);
                     }
 
+                    // Recursively retrieve alerts from friends
                     foreach (var friendId in friendIds)
                     {
                         var frndAlerts = await RetrieveAlertMarkers(friendId);
@@ -448,7 +511,7 @@ namespace FENS_Connect
                 await pFL.Document(_Name).SetAsync(p, SetOptions.MergeAll);
 
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 Debug.WriteLine($"[FB] ERRORR SOMEWHERE: {e.Message}");
             }

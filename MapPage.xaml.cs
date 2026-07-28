@@ -20,6 +20,9 @@ public partial class MapPage : ContentPage
         public List<FriendInfo> FriendList { get; set; } = new List<FriendInfo>();
 
         public GeoPoint UserLocation { get; set; } = new GeoPoint();
+        public Dictionary<string, bool> UserSettings { get; set; } = new Dictionary<string, bool>();
+
+        public const string ALERTS_SHOWN_TO_FRIENDS_KEY = "AlertsShownToFriends";
 
     }
 
@@ -30,6 +33,7 @@ public partial class MapPage : ContentPage
         public string Note { get; set; } = string.Empty;
         public string CreatedBy { get; set; } = string.Empty;
         public GeoPoint alertLoc { get; set; } = new GeoPoint();
+        public bool AvailableToFriends { get; set; } = false;
     }
 
 
@@ -159,6 +163,7 @@ public partial class MapPage : ContentPage
     private readonly Style UnselectedTabLabelStyle = (Style)Application.Current!.Resources["UnselectedTabLabelStyle"];
 
     string currentFirebaseUserId;
+    public string CurrentFirebaseUserId { get => currentFirebaseUserId; }
 
     public MapPage(IFirebaseAuthService authService)
     {
@@ -191,7 +196,11 @@ public partial class MapPage : ContentPage
             }
             catch (Exception ex)
             {
-                await DisplayAlertAsync("Error", $"Could not load user profile data. {ex.Message}", "OK");
+                await DisplayAlertAsync("Error", $"Could not load user profile data. {ex.Message}", "Refresh");
+
+                _db.UpdateSettings(currentFirebaseUserId);
+                await Shell.Current.GoToAsync($"{nameof(MapPage)}");
+
             }
         }
     }
@@ -275,6 +284,7 @@ public partial class MapPage : ContentPage
                 string createdBy = query["createdBy"];
                 string lat = query["lat"];
                 string lng = query["lng"];
+                string availableToFriends = query["availableToFriends"];
 
                 var pAlert = new AlertMarkerInfo
                 {
@@ -282,7 +292,8 @@ public partial class MapPage : ContentPage
                     UserID = userID,
                     Note = note,
                     CreatedBy = createdBy,
-                    alertLoc = new GeoPoint(double.Parse(lat), double.Parse(lng))
+                    alertLoc = new GeoPoint(double.Parse(lat), double.Parse(lng)),
+                    AvailableToFriends = bool.Parse(availableToFriends)
                 };
 
                 if (userID != null)
@@ -298,8 +309,7 @@ public partial class MapPage : ContentPage
                 string alertID = query["markerID"];
                 try
                 {
-
-                    var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId);
+                    var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId,false,true);
 
                     var pAlToDel = pAlerts.FirstOrDefault(alert => alert.MarkerID == alertID);
 
@@ -846,6 +856,17 @@ public partial class MapPage : ContentPage
         GeneralSettingsGrid.IsVisible = false;
     }
 
+    private async void ShowGeneralOptions(object? sender, EventArgs e)
+    {
+        GeneralSettingsSubMenu.IsVisible = true;
+        if (!CurrentUser!.UserSettings.ContainsKey(UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY))
+        {
+            CurrentUser!.UserSettings.Add(UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY, alertsShownToFriendsCheckmark.IsVisible);
+        }
+        await AloneSettingsGrid.TranslateToAsync(0, 0, 200, Easing.SinIn);
+        GeneralSettingsGrid.IsVisible = false;
+    }
+
     private async void BackFromAloneModeSettings(object? sender, EventArgs e)
     {
         await BackToSettingsMenu();
@@ -883,9 +904,19 @@ public partial class MapPage : ContentPage
         ActivateAutomaticallyCheckmark.IsVisible = !ActivateAutomaticallyCheckmark.IsVisible;
     }
 
+
+    private void AlertsShownToFriendsBoxClicked(object? sender, TappedEventArgs e)
+    {
+        alertsShownToFriendsCheckmark.IsVisible = !alertsShownToFriendsCheckmark.IsVisible;
+        CurrentUser!.UserSettings[UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY] = alertsShownToFriendsCheckmark.IsVisible;
+        // later want to update only when going back to the settings menu, but for now, update it immediately
+        _db.UpdateSettings(currentFirebaseUserId, CurrentUser);
+    }
+
+
     private void SendAlertToFriends(object? sender, EventArgs e)
     {
-
+        
     }
 
     // Triggered when clicking on the "Add Friend" button in the friends menu
@@ -1099,6 +1130,7 @@ public partial class MapPage : ContentPage
         {
             LoginPopup.IsVisible = false;
 
+            CurrentUser = pUser;        // Update CurrentUser variable
             await UpdateAppToProfile(pUser);
             CurrentUser = pUser;
         }
@@ -1162,6 +1194,22 @@ public partial class MapPage : ContentPage
         {
             await Shell.Current.GoToAsync($"{nameof(MapPage)}");
         }
+    }
+
+    private void CloseAddFriendMenu(object? sender, TappedEventArgs e)
+    {
+        AddFriendMenuBorder.IsVisible = false;
+    }
+
+    private void CloseFriendListMenu(object? sender, TappedEventArgs e)
+    {
+        FriendsMenu.IsVisible = false;
+    }
+
+    private void CloseFriendFoundMenu(object? sender, TappedEventArgs e)
+    {
+        BackFromFriendsSearch(null, new EventArgs());
+        AddFriendMenuBorder.IsVisible = true;
     }
 
     private void OnShowRequestsListTap(object? sender, TappedEventArgs e)
@@ -1331,6 +1379,8 @@ public partial class MapPage : ContentPage
         ProfileIDShow.Text = $"Your ID: \n{currentFirebaseUserId}";
         ProfileEmailShow.Text = $"Your Email: \n{_userProf.UserEmail}";
 
+        alertsShownToFriendsCheckmark.IsVisible = CurrentUser!.UserSettings[UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY];
+
         FriendsListCollection.Clear();      // reset the friends list collection to avoid duplicates
         //Friends
         foreach (var frnds in _userProf.FriendList)
@@ -1354,7 +1404,7 @@ public partial class MapPage : ContentPage
 
 
         // updateJsWithNameAndID
-        await MapView.EvaluateJavaScriptAsync($"UpdateUserNameAndId('{_userProf.DisplayName}', '{currentFirebaseUserId}')");
+        await MapView.EvaluateJavaScriptAsync($"UpdateUserNameAndId('{_userProf.DisplayName}', '{currentFirebaseUserId}', '{_userProf.UserSettings[UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY]}')");
 
 
         // Update the visible alerts
@@ -1364,7 +1414,7 @@ public partial class MapPage : ContentPage
 
     async Task GetAllVisibleAlerts()
     {
-        var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId, true);
+        var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId, true,true);
 
         for (int i = 0; i < pAlerts.Count; i++)
         {

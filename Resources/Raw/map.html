@@ -138,6 +138,7 @@
         let oldPopup;
         let userName = "";
         let userId = "";
+        let userSettings = {};
         let alertDict = {};
 
 
@@ -655,6 +656,22 @@
             input.placeholder = 'ie. No lights, needles on ground, etc.';
             input.classList.add('sketchyAlertPopup-input');
 
+            const container = document.createElement('div');
+            container.className = 'checkbox-wrapper';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = 'friends-checkbox';
+            checkbox.className = 'friendsCheckbox';
+            checkbox.checked = userSettings.showFriends;
+
+            const label = document.createElement('label');
+            label.className = 'checkboxLabel';
+            label.htmlFor = 'friends-checkbox';
+            label.textContent = 'Alerts visible to friends'; 
+
+            container.appendChild(label);
+            container.appendChild(checkbox);
             // input.onchange(() => {
 
             // });
@@ -663,6 +680,7 @@
             popup.appendChild(closeButton);
 
             popup.appendChild(input);
+            popup.appendChild(container);
 
             const saveBtn = document.createElement('button');
             saveBtn.innerText = 'Save';
@@ -701,7 +719,8 @@
                     note: alertDict[alertMarker.id].note,
                     createdBy: alertDict[alertMarker.id].createdBy,
                     lat: alertDict[alertMarker.id].lat,
-                    lng: alertDict[alertMarker.id].lng
+                    lng: alertDict[alertMarker.id].lng,
+                    availableToFriends: checkbox.checked
                 }).toString();
 
                 window.location.href =
@@ -1214,9 +1233,10 @@
 
         }
 
-        function UpdateUserNameAndId(_userName, _userId) {
+        function UpdateUserNameAndId(_userName, _userId, _showFriendsSetting) {
             userName = _userName;
             userId = _userId;
+            userSettings.showFriends = _showFriendsSetting;
         }
 
         // Set the Alert markers that were already previously set
@@ -1514,6 +1534,24 @@
             text-align: center;
             text-align-last: center;
         }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+
+        .friendsCheckbox {
+            margin:0;
+        }
+
+        .checkboxLabel {
+            font-size: 8px;
+            text-align: start;
+            cursor: pointer; /* Makes clicking the text toggle the box too */
+        }
+
 
         .busList {
             display: flex;
