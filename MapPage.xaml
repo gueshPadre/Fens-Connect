@@ -1007,7 +1007,14 @@
                                                 Grid.Column="1"
                                                 WidthRequest="20"
                                                 HeightRequest="20"
-                                                Source="{Binding StarImgSource}"/>
+                                                Source="{Binding StarImgSource}">
+
+                                                        <Image.GestureRecognizers>
+                                                            <TapGestureRecognizer Tapped="OnStarTapped"
+                                                                      CommandParameter="{Binding UniqueId}"/>
+                                                        </Image.GestureRecognizers>
+                                                    </Image>
+                                                    
                                                 </HorizontalStackLayout>
                                                 <Label
                                             Grid.Column="1"

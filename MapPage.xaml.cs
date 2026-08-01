@@ -1252,6 +1252,17 @@ public partial class MapPage : ContentPage
         RequestTabLabel.Style = UnselectedTabLabelStyle;
     }
 
+    public async void OnStarTapped(object? sender, TappedEventArgs e)
+    {
+        string pFriendID = (string)e.Parameter!;
+        var pFriend = CurrentUser!.FriendList.Find(f => f.UniqueId == pFriendID);
+
+        pFriend.isCloseFriend  = !pFriend.isCloseFriend;        // Toggle the close friend status
+        OnPropertyChanged();    // update visuals
+        await _db.UpdateCloseFriendStatus(currentFirebaseUserId, pFriend.Name, pFriend.isCloseFriend);
+    }
+
+
     private async void OnAcceptFriendRequest(object? sender, TappedEventArgs e)
     {
         FriendRequest? fr = e.Parameter as FriendRequest;

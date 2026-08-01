@@ -485,6 +485,24 @@ namespace FENS_Connect
             }
         }
 
+        public async Task UpdateCloseFriendStatus(string _userID, string _friendName, bool _isCloseFriend)
+        {
+            try
+            {
+                var pUsers = myDb.Collection("Users");
+                var pFL = pUsers.Document(_userID).Collection("FriendList");
+                var p = new
+                {
+                    IsCloseFriend = _isCloseFriend
+                };
+                await pFL.Document(_friendName).SetAsync(p, SetOptions.MergeAll);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"[FB] ERROR updating close friend status: {e.Message}");
+            }
+        }
+
         public async Task AddFriendForOtherUser(string _senderID, string _userID, string _Name, string _DN)
         {
             try
