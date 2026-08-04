@@ -68,11 +68,13 @@ public partial class MapPage : ContentPage
                     _isCloseFriend = value;
                     // change star to yellow
                     starImgSource = "staryellow.png"; // Change to yellow star image
+                    OnPropertyChanged(nameof(StarImgSource));    // update visuals
                 }
                 else
                 {
                     _isCloseFriend = false;
                     starImgSource = "star.png"; // Change back to default star image
+                    OnPropertyChanged(nameof(StarImgSource));    // update visuals
                 }
             }
         }
@@ -1255,10 +1257,13 @@ public partial class MapPage : ContentPage
     public async void OnStarTapped(object? sender, TappedEventArgs e)
     {
         string pFriendID = (string)e.Parameter!;
-        var pFriend = CurrentUser!.FriendList.Find(f => f.UniqueId == pFriendID);
+        var pFriend = CurrentUser!.FriendList.Find(f => f.UniqueId == pFriendID) ?? throw new Exception($"Friend with ID {pFriendID} not found in the current user's friend list.");
 
         pFriend.isCloseFriend  = !pFriend.isCloseFriend;        // Toggle the close friend status
-        OnPropertyChanged();    // update visuals
+
+
+        // Reorder the friends list to have close friends at the top
+        ReorderFriendList();
         await _db.UpdateCloseFriendStatus(currentFirebaseUserId, pFriend.Name, pFriend.isCloseFriend);
     }
 
@@ -1268,6 +1273,10 @@ public partial class MapPage : ContentPage
         FriendRequest? fr = e.Parameter as FriendRequest;
         var frnd = await _db.AddFriend(fr!.SenderId, false, currentFirebaseUserId);  // Automatically add the friend as a non-close friend when accepting the request
         FriendsListCollection.Add(frnd);
+
+        // Reorder the friends list to have close friends at the top
+        ReorderFriendList();
+
 
         // add this user to the other person's friend list as well
         await _db.AddFriendForOtherUser(fr.SenderId, currentFirebaseUserId, CurrentUser!.Name, CurrentUser.DisplayName);
@@ -1284,6 +1293,21 @@ public partial class MapPage : ContentPage
         //Update markers from friends
         await GetAllVisibleAlerts();
     }
+
+    void ReorderFriendList()
+    {
+        var pSortedList = FriendsListCollection.OrderByDescending(f => f.isCloseFriend)
+            .ThenBy(f => f.DisplayName)
+            .ToList();
+
+        FriendsListCollection.Clear();
+
+        foreach (var frn in pSortedList)
+        {
+            FriendsListCollection.Add(frn);
+        }
+    }
+
 
     private async void OnRefuseFriendRequest(object? sender, TappedEventArgs e)
     {
@@ -1398,6 +1422,8 @@ public partial class MapPage : ContentPage
         {
             FriendsListCollection.Add(frnds);
         }
+
+        ReorderFriendList();
 
         //Get Friend requests
         List<FriendRequest> pFriendReqs = await _db.GetFriendRequests(currentFirebaseUserId);

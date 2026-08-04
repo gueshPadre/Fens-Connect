@@ -141,6 +141,36 @@ const PRECOOKED_BUSINESSES = [
         close: ['00:00', '22:00', '22:00', '22:00', '23:00', '23:00', '21:00']
     },
     {
+        name: 'EVA Schnitzelhaus',
+        safeword: 'Schnitzel beer',
+        alternativeExit: 'No',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/EvaStar.png',
+        lng: -123.36915636749096,
+        lat: 48.429377554642954,
+        open: ['17:00', '17:00', '17:00', '17:00', '17:00', '10:00', '10:00'],
+        close: ['21:00', '21:00', '21:00', '21:00', '21:00', '21:00', '21:00']
+    },
+    {
+        name: 'Darcy\'s Pub',
+        safeword: 'boat water',
+        alternativeExit: 'No',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/DarcysStar.png',
+        lng: -123.36986404935028,
+        lat: 48.425841144765045,
+        open: ['11:00', '11:00', '11:00', '11:00', '11:00', '11:00', '11:00'],
+        close: ['00:00', '00:00', '00:00', '00:00', '00:00', '00:00', '00:00']
+    },
+    {
+        name: 'Boomtown',
+        safeword: 'boom boom',
+        alternativeExit: 'No',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/BoomtownStar.png',
+        lng: -123.35756799167952,
+        lat: 48.426067580974205,
+        open: ['11:30', '11:30', '11:30', '11:30', '11:30', '11:30', '11:30'],
+        close: ['22:00', '22:00', '22:00', '22:00', '22:00', '22:00', '22:00']
+    },
+    {
         name: 'Vancouver Art Gallery',
         safeword: '',
         alternativeExit: '',
