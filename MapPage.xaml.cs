@@ -557,10 +557,12 @@ public partial class MapPage : ContentPage
 
             // Change button function to send alert to friends
             GoToClosestLocBtn.Text = "Send quick msg to friends";
+            GoToClosestLocBtn.Clicked -= NavigateToClosestLocation;     // unbind the regular button click
             GoToClosestLocBtn.Clicked += SendAlertToFriends;
             GoToClosestLocBtn.IsVisible = true;
 
             TitleLabel.Text = "Stay Vigilant!";
+            TitleLabel.TextColor = Color.FromArgb("#ff0000");
             TitleLabel.IsVisible = true;
             return;
         }
@@ -570,10 +572,33 @@ public partial class MapPage : ContentPage
         var busLoc = new Location(pClosestBusiness.Lat, pClosestBusiness.Lng);
         var pClosestDist = (currentLoc.CalculateDistance(busLoc, DistanceUnits.Kilometers)) * 1000f / 1.8f / 60;
         // Average walking speed shown in minutes
-        TitleLabel.Text = $"You're only {pClosestDist.ToString("##")} min from safety";
+        if (pClosestDist > 5)
+        {
+            TitleLabel.Text = $"You're only {pClosestDist.ToString("##")} min from safety";
+            TitleLabel.TextColor = Color.FromArgb("#8a6812");
+        }
+        else if (pClosestDist >= 1)
+            TitleLabel.Text = $"You're only {pClosestDist.ToString("##")} min from safety";
+        else
+        {
+            TitleLabel.Text = $"You're at a safe place!";
+            TitleLabel.TextColor = Color.FromArgb("#3ab54a");
+            GoToClosestLocBtn.Text = "Get Info";
+            GoToClosestLocBtn.Clicked -= NavigateToClosestLocation;         // unbind the direction since we're already there
+            GoToClosestLocBtn.Clicked += ShowBusinessInfo;
+        }
+        
         TitleLabel.IsVisible = true;
         SafePlacesAround.IsVisible = true;
         GoToClosestLocBtn.IsVisible = true;
+    }
+
+    /// <summary>
+    /// When user clicks on the 'getClosestLocation button' when they're already at a safe place
+    /// </summary>
+    async void ShowBusinessInfo(object? sender, EventArgs e)
+    {
+        await MapView.EvaluateJavaScriptAsync($"ShowBusinessInfo('', true, '{closestLoc.Name}')");
     }
 
 
@@ -581,16 +606,16 @@ public partial class MapPage : ContentPage
     async Task GoToLocation()
     {
         // Get my position      // COMMENTED FOR TESTING PURPOSES, UNCOMMENT WHEN TESTING ON DEVICE
-        //currentLoc = new Location(48.43463846486408, -123.3831884197297);     // Vancouver's coordinates for testing purposes
-        var _currentLoc = await Geolocation.GetLocationAsync(
-            new GeolocationRequest
-            {
-                DesiredAccuracy = GeolocationAccuracy.High
-            });
-        if (_currentLoc != null)
-        {
-            currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
-        }
+        currentLoc = new Location(48.43498110287943, -123.39090956344772);     // Vancouver's coordinates for testing purposes
+        //var _currentLoc = await Geolocation.GetLocationAsync(
+        //    new GeolocationRequest
+        //    {
+        //        DesiredAccuracy = GeolocationAccuracy.High
+        //    });
+        //if (_currentLoc != null)
+        //{
+        //    currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
+        //}
 
         double lat;
         double lng;
@@ -676,7 +701,6 @@ public partial class MapPage : ContentPage
         $"{currentLoc.Longitude},{currentLoc.Latitude};{closestLoc.Lng},{closestLoc.Lat}" +
         $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
 
-        //await MapView.EvaluateJavaScriptAsync("ShowBusinessInfo('{test, test safeword, testExit}', 'true')");
         await MapView.EvaluateJavaScriptAsync($"ShowBusinessInfo('', true, '{closestLoc.Name}')");    // Later change to ID instead of name
 
         navigatingBusiness = closestLoc;     // Set the navigating business to the closest one for future updates
