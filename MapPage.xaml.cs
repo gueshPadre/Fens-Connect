@@ -606,16 +606,16 @@ public partial class MapPage : ContentPage
     async Task GoToLocation()
     {
         // Get my position      // COMMENTED FOR TESTING PURPOSES, UNCOMMENT WHEN TESTING ON DEVICE
-        currentLoc = new Location(48.43498110287943, -123.39090956344772);     // Vancouver's coordinates for testing purposes
-        //var _currentLoc = await Geolocation.GetLocationAsync(
-        //    new GeolocationRequest
-        //    {
-        //        DesiredAccuracy = GeolocationAccuracy.High
-        //    });
-        //if (_currentLoc != null)
-        //{
-        //    currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
-        //}
+        //currentLoc = new Location(48.43498110287943, -123.39090956344772);     // Vancouver's coordinates for testing purposes
+        var _currentLoc = await Geolocation.GetLocationAsync(
+            new GeolocationRequest
+            {
+                DesiredAccuracy = GeolocationAccuracy.High
+            });
+        if (_currentLoc != null)
+        {
+            currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
+        }
 
         double lat;
         double lng;
@@ -645,7 +645,7 @@ public partial class MapPage : ContentPage
         await LoadAllMarkers();
 
         // don't await it beucase it'll stall
-        //StartLocationTracking();
+        StartLocationTracking();
     }
 
     private async Task StartLocationTracking()
@@ -1230,6 +1230,8 @@ public partial class MapPage : ContentPage
     private void CloseFriendListMenu(object? sender, TappedEventArgs e)
     {
         FriendsMenu.IsVisible = false;
+        AddFriendMenuBorder.IsVisible = false;      // Turn all sub borders if ever they were turned on
+        BackFromFriendsSearch(null, new EventArgs());
     }
 
     private void CloseFriendFoundMenu(object? sender, TappedEventArgs e)
