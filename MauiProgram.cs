@@ -1,6 +1,12 @@
 ﻿using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
+using Plugin.LocalNotification;
+
+#if ANDROID
+using Firebase.Messaging;
+using FENS_Connect.Platforms.Android.Firebase;
+#endif
 
 namespace FENS_Connect
 {
@@ -11,6 +17,7 @@ namespace FENS_Connect
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseLocalNotification()
                 .UseMauiCommunityToolkit()
                 .ConfigureFonts(fonts =>
                 {
@@ -21,8 +28,16 @@ namespace FENS_Connect
 #if ANDROID
                     events.AddAndroid(android => android.OnCreate((activity, bundle) =>
                     {
-                        // This initializes the native Android Firebase instance using your JSON file
-                        Firebase.FirebaseApp.InitializeApp(activity);
+                        try
+                        {
+                            Firebase.FirebaseApp.InitializeApp(activity);
+                            FirebaseMessaging.Instance.GetToken().AddOnCompleteListener(new FcmTokenListener());
+                        }
+                        catch (Exception ex)
+                        {
+                            // Fresh devices without a Google account / Play Services can fail here.
+                            System.Diagnostics.Debug.WriteLine($"[FCM] Startup init skipped: {ex.Message}");
+                        }
                     }));
 #endif
                 });
@@ -30,6 +45,7 @@ namespace FENS_Connect
             // Register your platform-specific service implementation
 #if ANDROID
             builder.Services.AddSingleton<IFirebaseAuthService, Platforms.Android.AndroidAuthService>();
+            builder.Services.AddTransient<MapPage>();
             builder.Services.AddTransient<App>();
 #else
     // Fallback stub for Windows/iOS so compilation won't crash when running mock states

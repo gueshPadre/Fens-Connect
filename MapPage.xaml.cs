@@ -1,14 +1,16 @@
 using Google.Cloud.Firestore;
+using Plugin.LocalNotification;
+using Plugin.LocalNotification.Core.Models;
+using Plugin.LocalNotification.EventArgs;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Windows.Input;
 
 namespace FENS_Connect;
 
-//[QueryProperty(nameof(City), "city")]
 public partial class MapPage : ContentPage
 {
     public class UserProfile
@@ -180,6 +182,30 @@ public partial class MapPage : ContentPage
 
         // HTML maps integration
         LoadingMap();
+
+        // Listen for notification tap
+        if (LocalNotificationCenter.Current != null)
+            LocalNotificationCenter.Current.NotificationActionTapped += OnNotificationActionTapped;
+    }
+
+    async void OnNotificationActionTapped(NotificationActionEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(e.Request.ReturningData)) return;
+
+        // Handle the notification tap event
+        try
+        {
+            var data = JsonSerializer.Deserialize<UserProfile>(e.Request.ReturningData);
+            if (data != null)
+            {
+                await DisplayAlertAsync($"Notif called by: {data.DisplayName}", $"Msg: {data.UserLocation}", "Thx");
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error handling notification tap: {ex.Message}");
+        }
     }
 
 
@@ -195,6 +221,7 @@ public partial class MapPage : ContentPage
             {
                 CurrentUser = await GetUserInfo(currentFirebaseUserId);
                 await UpdateAppToProfile(CurrentUser);
+                await FcmDeviceRegistration.RegisterAsync(currentFirebaseUserId);
             }
             catch (Exception ex)
             {
@@ -245,7 +272,7 @@ public partial class MapPage : ContentPage
         return await _db.RetrieveUserInfo(_currentUserId);
     }
 
-    async void LoadingMap()
+    void LoadingMap()
     {
         // Get the Map
 
@@ -266,76 +293,105 @@ public partial class MapPage : ContentPage
 
             if (e.Url.Contains("getDirections"))
             {
-                var pUri = new Uri(e.Url);
-                var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
-                string businessName = query["businessName"];
-                //Get the proper business from the name
-                var pBus = businessDict.FirstOrDefault(b => b.Name == businessName);
-
-                if (pBus == null) { throw new Exception($"No business found in the dictionnary with the name: {businessName}"); }
-                GetDirectionsToBusiness(pBus);
+                GetDirections(e.Url);
             }
             else if (e.Url.Contains("setNewAlert"))
             {
-                // Set Alert to Db
-                var pUri = new Uri(e.Url);
-                var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
-                string alertID = query["markerID"];
-                string userID = query["userID"];
-                string note = query["note"];
-                string createdBy = query["createdBy"];
-                string lat = query["lat"];
-                string lng = query["lng"];
-                string availableToFriends = query["availableToFriends"];
-
-                var pAlert = new AlertMarkerInfo
-                {
-                    MarkerID = alertID,
-                    UserID = userID,
-                    Note = note,
-                    CreatedBy = createdBy,
-                    alertLoc = new GeoPoint(double.Parse(lat), double.Parse(lng)),
-                    AvailableToFriends = bool.Parse(availableToFriends)
-                };
-
-                if (userID != null)
-                {
-                    await AddAlertToDb(userID, pAlert);
-                }
-                //await DisplayAlertAsync("Success", $"alertMarker ID: {alertID}, user: {userID}", "good");
+                SetNewAlert(e.Url);
             }
             else if (e.Url.Contains("DeleteAlert"))
             {
-                var pUri = new Uri(e.Url);
-                var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
-                string alertID = query["markerID"];
-                try
-                {
-                    var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId,false,true);
-
-                    var pAlToDel = pAlerts.FirstOrDefault(alert => alert.MarkerID == alertID);
-
-                    if (pAlToDel != null)
-                    {
-                        await _db.RemoveAlert(currentFirebaseUserId, pAlToDel.MarkerID);
-                        await DisplayAlertAsync("Success", $"Alert deleted successfully", "OK");
-                    }
-                    else
-                    {
-                        await DisplayAlertAsync("Error", $"Error deleting the alert", "OK");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[FB] Non deletion??: {ex.Message}");
-                    if (ex.InnerException != null)
-                    {
-                        Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
-                    }
-                }
+                DeleteAlert(e.Url);
+            }
+            else if (e.Url.Contains("sendFriendAlert"))
+            {
+                SendFriendAlert(e.Url);
             }
 
         }
+    }
+
+    // When clicked on the marker, get the directions to that location (from js file)
+    void GetDirections(string _url)
+    {
+        var pUri = new Uri(_url);
+        var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
+        string businessName = query["businessName"];
+        //Get the proper business from the name
+        var pBus = businessDict.FirstOrDefault(b => b.Name == businessName);
+
+        if (pBus == null) { throw new Exception($"No business found in the dictionnary with the name: {businessName}"); }
+        GetDirectionsToBusiness(pBus);
+    }
+
+    // When clicked on adding an alert marker on the map
+    async void SetNewAlert(string _url)
+    {
+        // Set Alert to Db
+        var pUri = new Uri(_url);
+        var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
+        string alertID = query["markerID"];
+        string userID = query["userID"];
+        string note = query["note"];
+        string createdBy = query["createdBy"];
+        string lat = query["lat"];
+        string lng = query["lng"];
+        string availableToFriends = query["availableToFriends"];
+
+        var pAlert = new AlertMarkerInfo
+        {
+            MarkerID = alertID,
+            UserID = userID,
+            Note = note,
+            CreatedBy = createdBy,
+            alertLoc = new GeoPoint(
+                TryParseInvariant(lat, out var parsedLat) ? parsedLat : 0,
+                TryParseInvariant(lng, out var parsedLng) ? parsedLng : 0),
+            AvailableToFriends = bool.Parse(availableToFriends)
+        };
+
+        if (userID != null)
+        {
+            await AddAlertToDb(userID, pAlert);
+        }
+        //await DisplayAlertAsync("Success", $"alertMarker ID: {alertID}, user: {userID}", "good");
+    }
+
+    async void DeleteAlert(string _url)
+    {
+        var pUri = new Uri(_url);
+        var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
+        string alertID = query["markerID"];
+        try
+        {
+            var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId, false, true);
+
+            var pAlToDel = pAlerts.FirstOrDefault(alert => alert.MarkerID == alertID);
+
+            if (pAlToDel != null)
+            {
+                await _db.RemoveAlert(currentFirebaseUserId, pAlToDel.MarkerID);
+                await DisplayAlertAsync("Success", $"Alert deleted successfully", "OK");
+            }
+            else
+            {
+                await DisplayAlertAsync("Error", $"Error deleting the alert", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[FB] Non deletion??: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
+            }
+        }
+    }
+
+    /// When clicked on the "send alert to friends" button or the alert friends on map
+    async void SendFriendAlert(string _url)
+    {
+
     }
 
 
@@ -355,130 +411,160 @@ public partial class MapPage : ContentPage
     // map location on startup
     async void HandleMapLocation()
     {
-        MapView.IsVisible = false;
-        //MapBorder.IsVisible = true;
-        await GoToLocation();
+        try
+        {
+            MapView.IsVisible = false;
+            await GoToLocation();
 
-        LoadingText.IsVisible = false;
-        LoadingImage.IsVisible = false;
-        MapBorder.IsVisible = true;
-        MapView.IsVisible = true;
+            LoadingText.IsVisible = false;
+            LoadingImage.IsVisible = false;
+            MapBorder.IsVisible = true;
+            MapView.IsVisible = true;
 
-        FetchAllLocations();
+            FetchAllLocations();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Map] HandleMapLocation failed: {ex.Message}");
+            LoadingText.Text = "Could not load map location. Enable location permission and try again.";
+            LoadingText.IsVisible = true;
+            LoadingImage.IsVisible = false;
+        }
     }
+
+    static bool TryParseInvariant(string? text, out double value)
+    {
+        return double.TryParse(
+            text?.Trim().TrimEnd(',', '}', ']', '\\', '"'),
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out value);
+    }
+
+    static bool IsValidLatLng(double lat, double lng) =>
+        lat is >= -90 and <= 90 && lng is >= -180 and <= 180;
+
+    static Location? TryMakeLocation(double lat, double lng) =>
+        IsValidLatLng(lat, lng) ? new Location(lat, lng) : null;
 
     async void FetchAllLocations()
     {
-        var pVisibleMarkers = await MapView.EvaluateJavaScriptAsync("getMarkerList()");
-        var pNames = await MapView.EvaluateJavaScriptAsync("getNameList()");
-
-        // Helper function to identify empty JS arrays or null responses
-        bool IsJsArrayEmpty(string jsResult) =>
-            string.IsNullOrWhiteSpace(jsResult) || jsResult == "[]" || jsResult == "null";
-
-        // Intercept the failure state immediately
-        if (IsJsArrayEmpty(pVisibleMarkers) || IsJsArrayEmpty(pNames))
+        try
         {
-            SafePlacesAround.Text = $"Uh-oh, no safe places close to you right now." +
-                $"\nMake sure you let your close friends know where you are!";
+            var pVisibleMarkers = await MapView.EvaluateJavaScriptAsync("getMarkerList()");
+            var pNames = await MapView.EvaluateJavaScriptAsync("getNameList()");
 
-            SafePlacesAround.IsVisible = true;
+            // Helper function to identify empty JS arrays or null responses
+            bool IsJsArrayEmpty(string jsResult) =>
+                string.IsNullOrWhiteSpace(jsResult) || jsResult == "[]" || jsResult == "null";
 
-            // Change button function to send alert to friends
-            GoToClosestLocBtn.Text = "Send quick msg to friends";
-            GoToClosestLocBtn.Clicked += SendAlertToFriends;
-            GoToClosestLocBtn.IsVisible = true;
-
-            TitleLabel.Text = "Stay Vigilant!";
-            TitleLabel.IsVisible = true;
-            return;
-        }
-
-
-
-        var pNameList = pNames.Split('"');
-        var pGenNameList = new List<string>();
-        foreach (var name in pNameList)
-        {
-            if (!name.Any(char.IsAsciiLetter)) { continue; }
-            pGenNameList.Add(name.Trim('\\', ',', '[', ']', '}'));
-        }
-        // Iterate through all the businesses and get their infos
-        var pMarLists = pVisibleMarkers.Split(',');
-        int busIndex = 0;
-        var newBus = new LocationMarkers() { Name = pGenNameList[busIndex] };
-        bool instantiateNewBusiness = false;
-        foreach (var pMarker in pMarLists)
-        {
-            bool isLng = false;
-            bool isLat = false;
-            if (instantiateNewBusiness)
+            // Intercept the failure state immediately
+            if (IsJsArrayEmpty(pVisibleMarkers) || IsJsArrayEmpty(pNames))
             {
-                busIndex++;
-                newBus = new LocationMarkers();
-                newBus.Name = pGenNameList[busIndex];
-                instantiateNewBusiness = false;
+                SafePlacesAround.Text = $"Uh-oh, no safe places close to you right now." +
+                    $"\nMake sure you let your close friends know where you are!";
+
+                SafePlacesAround.IsVisible = true;
+
+                // Change button function to send alert to friends
+                GoToClosestLocBtn.Text = "Send quick msg to friends";
+                GoToClosestLocBtn.Clicked += SendAlertToFriends;
+                GoToClosestLocBtn.IsVisible = true;
+
+                TitleLabel.Text = "Stay Vigilant!";
+                TitleLabel.IsVisible = true;
+                return;
             }
 
-            for (int i = 0; i < pMarker.Length; i++)
+            var pNameList = pNames.Split('"');
+            var pGenNameList = new List<string>();
+            foreach (var name in pNameList)
             {
-                if (pMarker[i] == 'l' && pMarker[i + 1] == 'n')         // lng
+                if (!name.Any(char.IsAsciiLetter)) { continue; }
+                pGenNameList.Add(name.Trim('\\', ',', '[', ']', '}'));
+            }
+
+            // Iterate through all the businesses and get their infos
+            var pMarLists = pVisibleMarkers.Split(',');
+            int busIndex = 0;
+            if (pGenNameList.Count == 0)
+                return;
+
+            var newBus = new LocationMarkers() { Name = pGenNameList[busIndex] };
+            bool instantiateNewBusiness = false;
+            businessDict.Clear();
+            foreach (var pMarker in pMarLists)
+            {
+                bool isLng = false;
+                bool isLat = false;
+                if (instantiateNewBusiness)
                 {
-                    isLng = true;
+                    busIndex++;
+                    if (busIndex >= pGenNameList.Count)
+                        break;
+                    newBus = new LocationMarkers();
+                    newBus.Name = pGenNameList[busIndex];
+                    instantiateNewBusiness = false;
                 }
 
-                if (pMarker[i] == 'l' && pMarker[i + 1] == 'a')         // lat
+                for (int i = 0; i < pMarker.Length - 1; i++)
                 {
-                    isLat = true;
-                }
+                    if (pMarker[i] == 'l' && pMarker[i + 1] == 'n')         // lng
+                        isLng = true;
 
-                if (pMarker[i] == ':')        // last char before number
-                {
-                    if (isLng)      // Get longitude
+                    if (pMarker[i] == 'l' && pMarker[i + 1] == 'a')         // lat
+                        isLat = true;
+
+                    if (pMarker[i] != ':')
+                        continue;
+
+                    var raw = pMarker.Substring(i + 1);
+                    if (isLng)
                     {
-                        newBus.Lng = double.Parse(pMarker.Substring(i + 1, length: pMarker.Substring(i + 1).Length - 2));       // length of the number
+                        if (TryParseInvariant(raw, out var lng))
+                            newBus.Lng = lng;
                         isLng = false;
                         break;
                     }
-                    if (isLat)      // Get latitude
+                    if (isLat)
                     {
-                        newBus.Lat = double.Parse(pMarker.Substring(i + 1, length: pMarker.Substring(i + 1).Length - 2));  // length of the number
-                        businessDict.Add(newBus);
+                        if (TryParseInvariant(raw, out var lat))
+                            newBus.Lat = lat;
+
+                        if (IsValidLatLng(newBus.Lat, newBus.Lng))
+                            businessDict.Add(newBus);
+                        else
+                            Debug.WriteLine($"[Map] Skipping invalid coords for {newBus.Name}: {newBus.Lat}, {newBus.Lng}");
+
                         isLat = false;
                         instantiateNewBusiness = true;
                         break;
                     }
                 }
-
             }
-        }
 
-        foreach (var bus in businessDict)
-        {
-            Debug.WriteLine($"Name: {bus.Name}, Lat: {bus.Lat}, Lng: {bus.Lng}");
+            foreach (var bus in businessDict)
+                Debug.WriteLine($"Name: {bus.Name}, Lat: {bus.Lat}, Lng: {bus.Lng}");
 
-        }
-        await Task.Delay(500);     // Delay to ensure the map has updated the center before fetching bounds
-        //Get all bounds
-        var pBounds = await MapView.EvaluateJavaScriptAsync($"getBounds()");
-        double north = 0, south = 0, east = 0, west = 0;
+            await Task.Delay(500);     // Delay to ensure the map has updated the center before fetching bounds
+            var pBounds = await MapView.EvaluateJavaScriptAsync($"getBounds()");
+            double north = 0, south = 0, east = 0, west = 0;
 
-
-        var pBoundSplit = pBounds.Split(',');
-        int count = 0;
-        if (pBoundSplit.Length <= 0)
-        {
-            throw new Exception("Bounds of the map were not properly fetched from Java" +
-            " or the split didn't happen properly");
-        }
-        foreach (var bound in pBoundSplit)
-        {
-            var pSplits = bound.Split(':');
-            foreach (var split in pSplits)
+            var pBoundSplit = pBounds?.Split(',') ?? Array.Empty<string>();
+            int count = 0;
+            if (pBoundSplit.Length <= 0)
             {
-                double res;
-                if (double.TryParse(split.Trim('\\', ',', '[', ']', '}'), out res))
+                Debug.WriteLine("[Map] Bounds were not fetched properly");
+                return;
+            }
+            foreach (var bound in pBoundSplit)
+            {
+                var pSplits = bound.Split(':');
+                foreach (var split in pSplits)
                 {
+                    if (!TryParseInvariant(split.Trim('\\', ',', '[', ']', '}'), out var res))
+                        continue;
+
                     switch (count)
                     {
                         case 0:
@@ -500,50 +586,62 @@ public partial class MapPage : ContentPage
                     }
                 }
             }
+
+            GetClosestLocation(north, south, east, west);
         }
-
-        GetClosestLocation(north, south, east, west);
-
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Map] FetchAllLocations failed: {ex}");
+            SafePlacesAround.Text = "Could not load nearby safe places right now.";
+            SafePlacesAround.IsVisible = true;
+        }
     }
 
     // Get the information of the closest locations and display it,
     // also save the closest location for later use when navigating
     void GetClosestLocation(double _north, double _south, double _east, double _west)
     {
-        //Debug.WriteLine($"{_north}, south: {_south}, East {_east}, west {_west}");
-        var visibleBusinesses = businessDict.Where(bus =>
-        bus.Lat <= _north &&
-        bus.Lat >= _south &&
-        bus.Lng <= _east &&
-        bus.Lng >= _west
-    ).ToList();
-
-        foreach (var bus in visibleBusinesses)
+        if (currentLoc == null)
         {
-            Debug.WriteLine($"Visible business: {bus.Name}");
+            Debug.WriteLine("[Map] GetClosestLocation skipped — no current location");
+            return;
         }
 
-        double pDist = 0;
-        var pClosestBusiness = visibleBusinesses.OrderBy(bus =>
-        {
-            var busLoc = new Location(bus.Lat, bus.Lng);
-            pDist = currentLoc.CalculateDistance(busLoc, DistanceUnits.Kilometers);
-            return pDist;
-        }).FirstOrDefault();
+        var validBusinesses = businessDict.Where(b => IsValidLatLng(b.Lat, b.Lng)).ToList();
+        var visibleBusinesses = validBusinesses.Where(bus =>
+            bus.Lat <= _north &&
+            bus.Lat >= _south &&
+            bus.Lng <= _east &&
+            bus.Lng >= _west
+        ).ToList();
 
+        foreach (var bus in visibleBusinesses)
+            Debug.WriteLine($"Visible business: {bus.Name}");
 
-        //Debug.WriteLine($"Closest business: {pClosestBusiness?.Name} and dist: {}");
+        var pClosestBusiness = visibleBusinesses
+            .Select(bus => new { Bus = bus, Loc = TryMakeLocation(bus.Lat, bus.Lng) })
+            .Where(x => x.Loc != null)
+            .OrderBy(x => currentLoc.CalculateDistance(x.Loc!, DistanceUnits.Kilometers))
+            .Select(x => x.Bus)
+            .FirstOrDefault();
 
         closestLoc = pClosestBusiness;
         // Display info
         // If no places around
         if (visibleBusinesses.Count <= 0)
         {
-            var pCloseLoc = businessDict.MinBy(b => currentLoc.CalculateDistance(new Location(b.Lat, b.Lng), DistanceUnits.Kilometers));
+            var pCloseLoc = validBusinesses
+                .Select(b => new { Bus = b, Loc = TryMakeLocation(b.Lat, b.Lng) })
+                .Where(x => x.Loc != null)
+                .OrderBy(x => currentLoc.CalculateDistance(x.Loc!, DistanceUnits.Kilometers))
+                .Select(x => x.Bus)
+                .FirstOrDefault();
+
             if (pCloseLoc != null)
             {
-                var pActDist = currentLoc.CalculateDistance(new Location(pCloseLoc.Lat, pCloseLoc.Lng), DistanceUnits.Kilometers);
-                SafePlacesAround.Text = $"Uh-oh, the closest one is {pCloseLoc.Name} at: {pActDist.ToString("##.#")} km." +
+                var closeLoc = TryMakeLocation(pCloseLoc.Lat, pCloseLoc.Lng)!;
+                var pActDist = currentLoc.CalculateDistance(closeLoc, DistanceUnits.Kilometers);
+                SafePlacesAround.Text = $"Uh-oh, the closest one is {pCloseLoc.Name} at: {pActDist.ToString("##.#", CultureInfo.InvariantCulture)} km." +
                     $"\nZoom out to see all your options." +
                 $"\nMake sure you let your close friends know where you are!";
             }
@@ -569,16 +667,19 @@ public partial class MapPage : ContentPage
         SafePlacesAround.Text = $"You have {visibleBusinesses.Count} safe places around you." +
             $" \nThe closest one is {pClosestBusiness?.Name}";
 
-        var busLoc = new Location(pClosestBusiness.Lat, pClosestBusiness.Lng);
+        var busLoc = TryMakeLocation(pClosestBusiness!.Lat, pClosestBusiness.Lng);
+        if (busLoc == null)
+            return;
+
         var pClosestDist = (currentLoc.CalculateDistance(busLoc, DistanceUnits.Kilometers)) * 1000f / 1.8f / 60;
         // Average walking speed shown in minutes
         if (pClosestDist > 5)
         {
-            TitleLabel.Text = $"You're only {pClosestDist.ToString("##")} min from safety";
+            TitleLabel.Text = $"You're only {pClosestDist.ToString("##", CultureInfo.InvariantCulture)} min from safety";
             TitleLabel.TextColor = Color.FromArgb("#8a6812");
         }
         else if (pClosestDist >= 1)
-            TitleLabel.Text = $"You're only {pClosestDist.ToString("##")} min from safety";
+            TitleLabel.Text = $"You're only {pClosestDist.ToString("##", CultureInfo.InvariantCulture)} min from safety";
         else
         {
             TitleLabel.Text = $"You're at a safe place!";
@@ -587,7 +688,7 @@ public partial class MapPage : ContentPage
             GoToClosestLocBtn.Clicked -= NavigateToClosestLocation;         // unbind the direction since we're already there
             GoToClosestLocBtn.Clicked += ShowBusinessInfo;
         }
-        
+
         TitleLabel.IsVisible = true;
         SafePlacesAround.IsVisible = true;
         GoToClosestLocBtn.IsVisible = true;
@@ -602,32 +703,49 @@ public partial class MapPage : ContentPage
     }
 
 
+    static readonly Location DefaultMapCenter = new(49.2827, -123.1207); // Vancouver fallback
+
+    async Task<Location?> TryGetCurrentLocationAsync()
+    {
+        try
+        {
+            var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+                Debug.WriteLine($"[Map] TRYING GET MAP {status}");
+            if (status != PermissionStatus.Granted)
+                status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+
+            if (status != PermissionStatus.Granted)
+            {
+                Debug.WriteLine("[Map] Location permission denied");
+                return null;
+            }
+
+            return await Geolocation.GetLocationAsync(new GeolocationRequest
+            {
+                DesiredAccuracy = GeolocationAccuracy.High,
+                Timeout = TimeSpan.FromSeconds(15)
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Map] TryGetCurrentLocationAsync failed: {ex.Message}");
+            return null;
+        }
+    }
+
     // Go to the start location of the user
     async Task GoToLocation()
     {
         // Get my position      // COMMENTED FOR TESTING PURPOSES, UNCOMMENT WHEN TESTING ON DEVICE
-        //currentLoc = new Location(48.43498110287943, -123.39090956344772);     // Vancouver's coordinates for testing purposes
-        var _currentLoc = await Geolocation.GetLocationAsync(
-            new GeolocationRequest
-            {
-                DesiredAccuracy = GeolocationAccuracy.High
-            });
-        if (_currentLoc != null)
-        {
-            currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
-        }
+        currentLoc = new Location(48.43498110287943, -123.39090956344772);     // Vancouver's coordinates for testing purposes
+        //var _currentLoc = await TryGetCurrentLocationAsync();
+        //if (_currentLoc != null)
+        //    currentLoc = new Location(_currentLoc.Latitude, _currentLoc.Longitude);
+        //else
+        //    currentLoc = DefaultMapCenter;
 
-        double lat;
-        double lng;
-        if (currentLoc == null)
-        {
-            throw new Exception("Location was not found");
-        }
-        else
-        {
-            lat = currentLoc.Latitude;
-            lng = currentLoc.Longitude;
-        }
+        double lat = currentLoc.Latitude;
+        double lng = currentLoc.Longitude;
 
         var placemarks = await Geocoding.Default.GetPlacemarksAsync(lat, lng);
         var placemark = placemarks?.FirstOrDefault();
@@ -645,7 +763,7 @@ public partial class MapPage : ContentPage
         await LoadAllMarkers();
 
         // don't await it beucase it'll stall
-        StartLocationTracking();
+        //_ = StartLocationTracking();
     }
 
     private async Task StartLocationTracking()
@@ -940,9 +1058,73 @@ public partial class MapPage : ContentPage
     }
 
 
-    private void SendAlertToFriends(object? sender, EventArgs e)
+    private async void SendAlertToFriends(object? sender, EventArgs e)
     {
-        
+        await SendCloudFriendAlertAsync(targetFriendId: null);
+    }
+
+    private async void AlertSpecificFriend(object? sender, TappedEventArgs e)
+    {
+        string? friendId = null;
+        if (e.Parameter is FriendInfo friend)
+            friendId = friend.UniqueId;
+        else if (e.Parameter != null)
+            friendId = e.Parameter.ToString();
+
+        Debug.WriteLine($"[TAP] Alerting specific friend with ID: {friendId}");
+        await SendCloudFriendAlertAsync(friendId);
+    }
+
+    private async Task SendCloudFriendAlertAsync(string? targetFriendId)
+    {
+        if (string.IsNullOrEmpty(currentFirebaseUserId))
+        {
+            await DisplayAlertAsync("Error", "You must be logged in to alert friends.", "OK");
+            return;
+        }
+
+        if (await LocalNotificationCenter.Current.AreNotificationsEnabled() == false)
+        {
+            await LocalNotificationCenter.Current.RequestNotificationPermission();
+        }
+
+        double lat = currentLoc?.Latitude ?? 0;
+        double lng = currentLoc?.Longitude ?? 0;
+        if (currentLoc == null)
+        {
+            try
+            {
+                var loc = await Geolocation.GetLocationAsync(new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(8)));
+                if (loc != null)
+                {
+                    lat = loc.Latitude;
+                    lng = loc.Longitude;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FCM] Could not get location for alert: {ex.Message}");
+            }
+        }
+
+        var requestId = await _db.CreateFriendAlertRequestAsync(
+            currentFirebaseUserId,
+            lat,
+            lng,
+            targetFriendId);
+
+        if (requestId == null)
+        {
+            await DisplayAlertAsync("Error", "Could not send alert. Please try again.", "OK");
+            return;
+        }
+
+        await DisplayAlertAsync(
+            "Alert sent",
+            string.IsNullOrEmpty(targetFriendId)
+                ? "Your friends will be notified shortly."
+                : "Your friend will be notified shortly.",
+            "OK");
     }
 
     // Triggered when clicking on the "Add Friend" button in the friends menu
@@ -954,15 +1136,8 @@ public partial class MapPage : ContentPage
             return;
         }
         AddFriendMenuBorder.IsVisible = true;
-        // reset entries
         FriendIDEntry.Text = "";
         CloseFriendSwitch.IsToggled = false;
-    }
-
-    private void AlertSpecificFriend(object? sender, TappedEventArgs e)
-    {
-        if (e.Parameter != null)
-            Debug.WriteLine($"[TAP] Alerting specific friend with ID: {e.Parameter.ToString()}");
     }
 
     private async void SendFriendRequest(string _userID, string _friendID, bool _isCloseFrnd)
@@ -1159,6 +1334,7 @@ public partial class MapPage : ContentPage
             CurrentUser = pUser;        // Update CurrentUser variable
             await UpdateAppToProfile(pUser);
             CurrentUser = pUser;
+            await FcmDeviceRegistration.RegisterAsync(currentFirebaseUserId);
         }
     }
 
@@ -1195,6 +1371,7 @@ public partial class MapPage : ContentPage
 
         currentFirebaseUserId = pId;
         await _db.ConnectUserToDb(pId, pNewProf, needToUpdate);
+        await FcmDeviceRegistration.RegisterAsync(pId);
 
         await DisplayAlertAsync("SUCCESS!", "You're officially in!", "Yay");
 
@@ -1285,7 +1462,7 @@ public partial class MapPage : ContentPage
         string pFriendID = (string)e.Parameter!;
         var pFriend = CurrentUser!.FriendList.Find(f => f.UniqueId == pFriendID) ?? throw new Exception($"Friend with ID {pFriendID} not found in the current user's friend list.");
 
-        pFriend.isCloseFriend  = !pFriend.isCloseFriend;        // Toggle the close friend status
+        pFriend.isCloseFriend = !pFriend.isCloseFriend;        // Toggle the close friend status
 
 
         // Reorder the friends list to have close friends at the top
@@ -1477,7 +1654,7 @@ public partial class MapPage : ContentPage
 
     async Task GetAllVisibleAlerts()
     {
-        var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId, true,true);
+        var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId, true, true);
 
         for (int i = 0; i < pAlerts.Count; i++)
         {

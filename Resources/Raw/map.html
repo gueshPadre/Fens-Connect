@@ -91,6 +91,10 @@
         alertFriendIcon.className = 'map-icon';
         alertFriendIcon.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/alertFriends2.png';
 
+        friendAlrt.addEventListener('click', () => {
+            createFriendAlert();
+        });
+
         friendAlrt.appendChild(alertFriendIcon);
 
 
@@ -301,9 +305,19 @@
             alertEl.addEventListener('click', () => {
                 showAlertNote(aM);
             });
-
-
         }
+
+        function createFriendAlert() {
+            const url = new URL("app://sendFriendAlert");
+
+            // This automatically encodes everything and structures the '&' and '?' perfectly
+            url.search = new URLSearchParams({
+            }).toString();
+
+            window.location.href =
+                url.toString();
+        }
+
 
         function showAlertNote(alertMarker) {
             // Check if already has note
