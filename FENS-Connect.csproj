@@ -83,11 +83,14 @@
 
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Maui" Version="13.0.0" />
-		<PackageReference Include="Google.Cloud.Firestore" Version="4.3.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+		<PackageReference Include="FirebaseAdmin" Version="3.6.0" />
+		<PackageReference Include="Google.Cloud.Firestore" Version="4.3.0" /> <!--OLD CONFIG-->
+		<!--<PackageReference Include="Google.Cloud.Firestore" Version="2.3.1" />-->
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.60" />
     <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.60" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Plugin.LocalNotification" Version="14.1.1" />
 	</ItemGroup>
 
 	<!--<ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
@@ -95,9 +98,12 @@
 	</ItemGroup>-->
   <!-- This ensures the Android packages are completely ignored by iOS and Windows -->
   <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
-    <PackageReference Include="Xamarin.Firebase.Common" Version="122.0.1.2" />
-    <PackageReference Include="Xamarin.Firebase.Messaging" Version="125.0.2" />
+    <!--<PackageReference Include="Xamarin.Firebase.Common" Version="122.0.1.2" OLD CONFIG/>
+    <PackageReference Include="Xamarin.Firebase.Messaging" Version="125.0.2" />-->
+    <PackageReference Include="Xamarin.Firebase.Common" Version="122.1.0.1" />
+    <PackageReference Include="Xamarin.Firebase.Messaging" Version="125.1.1" />
     <PackageReference Include="Xamarin.Firebase.Auth" Version="124.1.0" />
+    <PackageReference Include="Grpc.Core.Xamarin" Version="2.31.0" />
   </ItemGroup>
 
 

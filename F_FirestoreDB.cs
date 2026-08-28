@@ -15,6 +15,7 @@ namespace FENS_Connect
 
         async Task ConnectToDb()
         {
+            if (myDb != null) return;
             // 1. Get the current assembly where the JSON is embedded
             var assembly = Assembly.GetExecutingAssembly();
 
@@ -170,15 +171,28 @@ namespace FENS_Connect
 
         public async void UpdateSettings(string _uID)
         {
-            var pRef = myDb.Collection("Users").Document(_uID);
-
-            var pSettingsRef = pRef.Collection("UserSettings");
-            // Initialize the variable on the DB. just set to true by default
-            var pSettingsData = new
+            try
             {
-                AlertsShownToFriends = true
-            };
-            await pSettingsRef.Document("GeneralSettings").SetAsync(pSettingsData, SetOptions.MergeAll);
+                if (myDb == null)
+                {
+                    await ConnectToDb();
+                }
+
+                var pRef = myDb.Collection("Users").Document(_uID);
+
+                var pSettingsRef = pRef.Collection("UserSettings");
+                // Initialize the variable on the DB. just set to true by default
+                var pSettingsData = new
+                {
+                    AlertsShownToFriends = true
+                };
+                await pSettingsRef.Document("GeneralSettings").SetAsync(pSettingsData, SetOptions.MergeAll);
+            }
+            catch (Exception ex) 
+            {
+                Debug.WriteLine($"[FB] ERROR in updating settings: {ex.Message}");
+                throw; // rethrow the exception to be handled by the caller
+            }
         }
 
         /// <summary>
@@ -188,6 +202,10 @@ namespace FENS_Connect
         /// <param name="_user"></param>
         public async void UpdateSettings(string _uID, MapPage.UserProfile _user)
         {
+            if(myDb == null)
+            {
+                await ConnectToDb();
+            }
             var pRef = myDb.Collection("Users").Document(_uID);
 
             var pSettingsRef = pRef.Collection("UserSettings");
@@ -565,6 +583,76 @@ namespace FENS_Connect
             catch (Exception e)
             {
                 Debug.WriteLine($"[FB] NOT DELETED? {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Saves or updates this device's FCM token under Users/{userId}/Devices/{deviceId}.
+        /// </summary>
+        public async Task SaveDeviceTokenAsync(string userId, string deviceId, string token, string platform = "android")
+        {
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(deviceId))
+                return;
+
+            try
+            {
+                await ConnectToDb();
+                var deviceRef = myDb.Collection("Users").Document(userId)
+                    .Collection("Devices").Document(deviceId);
+
+                await deviceRef.SetAsync(new Dictionary<string, object>
+                {
+                    { "token", token },
+                    { "platform", platform },
+                    { "updatedAt", Timestamp.GetCurrentTimestamp() }
+                }, SetOptions.MergeAll);
+
+                Debug.WriteLine($"[FCM] Saved device token for user {userId} device {deviceId}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FCM] Failed to save device token: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Creates a cloud-managed friend alert request. A Cloud Function sends FCM — the client never sends push directly.
+        /// </summary>
+        public async Task<string?> CreateFriendAlertRequestAsync(
+            string fromUserId,
+            double lat,
+            double lng,
+            string? targetFriendId = null,
+            string type = "friend_sos")
+        {
+            if (string.IsNullOrWhiteSpace(fromUserId))
+                return null;
+
+            try
+            {
+                await ConnectToDb();
+                var requestRef = myDb.Collection("AlertRequests").Document();
+                var data = new Dictionary<string, object>
+                {
+                    { "fromUserId", fromUserId },
+                    { "createdAt", Timestamp.GetCurrentTimestamp() },
+                    { "type", type },
+                    { "lat", lat },
+                    { "lng", lng },
+                    { "status", "pending" }
+                };
+
+                if (!string.IsNullOrWhiteSpace(targetFriendId))
+                    data["targetFriendId"] = targetFriendId;
+
+                await requestRef.SetAsync(data);
+                Debug.WriteLine($"[FCM] AlertRequest created: {requestRef.Id}");
+                return requestRef.Id;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FCM] Failed to create AlertRequest: {ex.Message}");
+                return null;
             }
         }
 

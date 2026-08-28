@@ -1,7 +1,11 @@
 using Google.Cloud.Firestore;
+using Plugin.LocalNotification;
+using Plugin.LocalNotification.Core.Models;
+using Plugin.LocalNotification.EventArgs;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows.Input;
@@ -180,6 +184,31 @@ public partial class MapPage : ContentPage
 
         // HTML maps integration
         LoadingMap();
+
+        // Listen for notification tap
+        if (LocalNotificationCenter.Current != null)
+            LocalNotificationCenter.Current.NotificationActionTapped += OnNotificationActionTapped;
+    }
+
+    // Local notification tap event handler. So when the user taps on a notification that is only his
+    async void OnNotificationActionTapped(NotificationActionEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(e.Request.ReturningData)) return;
+
+        // Handle the notification tap event
+        try
+        {
+            var data = JsonSerializer.Deserialize<UserProfile>(e.Request.ReturningData);
+            if (data != null)
+            {
+                await DisplayAlertAsync($"Notif called by: {data.DisplayName}", $"Msg: {data.UserLocation}", "Thx");
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error handling notification tap: {ex.Message}");
+        }
     }
 
 
@@ -191,10 +220,12 @@ public partial class MapPage : ContentPage
         SetAloneMode(AloneModeState.IsAlone, saveState: false);
         if (!string.IsNullOrEmpty(currentFirebaseUserId))
         {
+            Debug.WriteLine($"[FB] Current user ID: {currentFirebaseUserId}");
             try
             {
-                CurrentUser = await GetUserInfo(currentFirebaseUserId);
+                CurrentUser = await _db.RetrieveUserInfo(currentFirebaseUserId);
                 await UpdateAppToProfile(CurrentUser);
+                await FcmDeviceRegistration.RegisterAsync(currentFirebaseUserId);
             }
             catch (Exception ex)
             {
@@ -238,14 +269,7 @@ public partial class MapPage : ContentPage
         return base.OnBackButtonPressed();
     }
 
-
-
-    async Task<UserProfile> GetUserInfo(string _currentUserId)
-    {
-        return await _db.RetrieveUserInfo(_currentUserId);
-    }
-
-    async void LoadingMap()
+    void LoadingMap()
     {
         // Get the Map
 
@@ -266,76 +290,102 @@ public partial class MapPage : ContentPage
 
             if (e.Url.Contains("getDirections"))
             {
-                var pUri = new Uri(e.Url);
-                var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
-                string businessName = query["businessName"];
-                //Get the proper business from the name
-                var pBus = businessDict.FirstOrDefault(b => b.Name == businessName);
-
-                if (pBus == null) { throw new Exception($"No business found in the dictionnary with the name: {businessName}"); }
-                GetDirectionsToBusiness(pBus);
+                GetDirections(e.Url);
             }
             else if (e.Url.Contains("setNewAlert"))
             {
                 // Set Alert to Db
-                var pUri = new Uri(e.Url);
-                var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
-                string alertID = query["markerID"];
-                string userID = query["userID"];
-                string note = query["note"];
-                string createdBy = query["createdBy"];
-                string lat = query["lat"];
-                string lng = query["lng"];
-                string availableToFriends = query["availableToFriends"];
-
-                var pAlert = new AlertMarkerInfo
-                {
-                    MarkerID = alertID,
-                    UserID = userID,
-                    Note = note,
-                    CreatedBy = createdBy,
-                    alertLoc = new GeoPoint(double.Parse(lat), double.Parse(lng)),
-                    AvailableToFriends = bool.Parse(availableToFriends)
-                };
-
-                if (userID != null)
-                {
-                    await AddAlertToDb(userID, pAlert);
-                }
-                //await DisplayAlertAsync("Success", $"alertMarker ID: {alertID}, user: {userID}", "good");
+                SetNewAlert(e.Url);
             }
             else if (e.Url.Contains("DeleteAlert"))
             {
-                var pUri = new Uri(e.Url);
-                var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
-                string alertID = query["markerID"];
-                try
-                {
-                    var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId,false,true);
-
-                    var pAlToDel = pAlerts.FirstOrDefault(alert => alert.MarkerID == alertID);
-
-                    if (pAlToDel != null)
-                    {
-                        await _db.RemoveAlert(currentFirebaseUserId, pAlToDel.MarkerID);
-                        await DisplayAlertAsync("Success", $"Alert deleted successfully", "OK");
-                    }
-                    else
-                    {
-                        await DisplayAlertAsync("Error", $"Error deleting the alert", "OK");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[FB] Non deletion??: {ex.Message}");
-                    if (ex.InnerException != null)
-                    {
-                        Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
-                    }
-                }
+                DeleteAlert(e.Url);
             }
-
+            else if (e.Url.Contains("sendFriendAlert"))
+            {
+                SendFriendAlert(e.Url);
+            }
         }
+    }
+
+    // When clicked on the marker, get the directions to that location (from js file)
+    void GetDirections(string _url)
+    {
+        var pUri = new Uri(_url);
+        var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
+        string businessName = query["businessName"];
+        //Get the proper business from the name
+        var pBus = businessDict.FirstOrDefault(b => b.Name == businessName);
+
+        if (pBus == null) { throw new Exception($"No business found in the dictionnary with the name: {businessName}"); }
+        GetDirectionsToBusiness(pBus);
+    }
+
+    // When clicked on adding an alert marker on the map
+    async void SetNewAlert(string _url)
+    {
+        // Set Alert to Db
+        var pUri = new Uri(_url);
+        var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
+        string alertID = query["markerID"];
+        string userID = query["userID"];
+        string note = query["note"];
+        string createdBy = query["createdBy"];
+        string lat = query["lat"];
+        string lng = query["lng"];
+        string availableToFriends = query["availableToFriends"];
+
+        var pAlert = new AlertMarkerInfo
+        {
+            MarkerID = alertID,
+            UserID = userID,
+            Note = note,
+            CreatedBy = createdBy,
+            alertLoc = new GeoPoint(double.Parse(lat), double.Parse(lng)),
+            AvailableToFriends = bool.Parse(availableToFriends)
+        };
+
+        if (userID != null)
+        {
+            await AddAlertToDb(userID, pAlert);
+        }
+    }
+
+    async void DeleteAlert(string _url)
+    {
+        var pUri = new Uri(_url);
+        var query = System.Web.HttpUtility.ParseQueryString(pUri.Query);
+        string alertID = query["markerID"];
+        try
+        {
+            var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId, false, true);
+
+            var pAlToDel = pAlerts.FirstOrDefault(alert => alert.MarkerID == alertID);
+
+            if (pAlToDel != null)
+            {
+                await _db.RemoveAlert(currentFirebaseUserId, pAlToDel.MarkerID);
+                await DisplayAlertAsync("Success", $"Alert deleted successfully", "OK");
+            }
+            else
+            {
+                await DisplayAlertAsync("Error", $"Error deleting the alert", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[FB] Non deletion??: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Debug.WriteLine($"[FB] Inner Error: {ex.InnerException.Message}");
+            }
+        }
+    }
+
+    /// When clicked on the "send alert to friends" button or the alert friends on map
+    async void SendFriendAlert(string _url)
+    {
+        await SendCloudFriendAlertAsync(targetFriendId: null);
     }
 
 
@@ -406,8 +456,10 @@ public partial class MapPage : ContentPage
         // Iterate through all the businesses and get their infos
         var pMarLists = pVisibleMarkers.Split(',');
         int busIndex = 0;
+        if (pGenNameList.Count == 0) return; // No businesses to process
         var newBus = new LocationMarkers() { Name = pGenNameList[busIndex] };
         bool instantiateNewBusiness = false;
+        businessDict.Clear(); // Clear the list before adding new businesses
         foreach (var pMarker in pMarLists)
         {
             bool isLng = false;
@@ -415,6 +467,7 @@ public partial class MapPage : ContentPage
             if (instantiateNewBusiness)
             {
                 busIndex++;
+                if (busIndex >= pGenNameList.Count) break; // Prevent out-of-range error
                 newBus = new LocationMarkers();
                 newBus.Name = pGenNameList[busIndex];
                 instantiateNewBusiness = false;
@@ -587,7 +640,7 @@ public partial class MapPage : ContentPage
             GoToClosestLocBtn.Clicked -= NavigateToClosestLocation;         // unbind the direction since we're already there
             GoToClosestLocBtn.Clicked += ShowBusinessInfo;
         }
-        
+
         TitleLabel.IsVisible = true;
         SafePlacesAround.IsVisible = true;
         GoToClosestLocBtn.IsVisible = true;
@@ -645,7 +698,7 @@ public partial class MapPage : ContentPage
         await LoadAllMarkers();
 
         // don't await it beucase it'll stall
-        StartLocationTracking();
+        _ = StartLocationTracking();
     }
 
     private async Task StartLocationTracking()
@@ -940,9 +993,9 @@ public partial class MapPage : ContentPage
     }
 
 
-    private void SendAlertToFriends(object? sender, EventArgs e)
+    private async void SendAlertToFriends(object? sender, EventArgs e)
     {
-        
+        await SendCloudFriendAlertAsync(targetFriendId: null);
     }
 
     // Triggered when clicking on the "Add Friend" button in the friends menu
@@ -959,11 +1012,67 @@ public partial class MapPage : ContentPage
         CloseFriendSwitch.IsToggled = false;
     }
 
-    private void AlertSpecificFriend(object? sender, TappedEventArgs e)
+    private async void AlertSpecificFriend(object? sender, TappedEventArgs e)
     {
-        if (e.Parameter != null)
-            Debug.WriteLine($"[TAP] Alerting specific friend with ID: {e.Parameter.ToString()}");
+        string? friendId = null;
+
+        if (e.Parameter is FriendInfo friend)
+            friendId = friend.UniqueId;
+        else if (e.Parameter != null)
+            friendId = e.Parameter.ToString();
+
+        Debug.WriteLine($"[TAP] Alerting specific friend with ID: {friendId}");
+        await SendCloudFriendAlertAsync(targetFriendId: friendId);
     }
+
+    private async Task SendCloudFriendAlertAsync(string? targetFriendId)
+    {
+        if (string.IsNullOrEmpty(currentFirebaseUserId))
+        {
+            await DisplayAlertAsync("Error", "You must be logged in to alert friends", "Got it");
+            return;
+        }
+
+        double lat = currentLoc?.Latitude ?? 0;
+        double lng = currentLoc?.Longitude ?? 0;
+        // if currentLoc is null, try to get the location again
+        if (currentLoc == null)
+        {
+            try
+            {
+                var loc = await Geolocation.GetLocationAsync(new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(8)));
+                if (loc != null)
+                {
+                    lat = loc.Latitude;
+                    lng = loc.Longitude;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FCM] Could not get location for alert: {ex.Message}");
+            }
+        }
+
+        var requestId = await _db.CreateFriendAlertRequestAsync(
+            currentFirebaseUserId,
+            lat,
+            lng,
+            targetFriendId);
+
+        if (requestId == null)
+        {
+            await DisplayAlertAsync("Error", "Could not send alert. Please try again.", "OK");
+            return;
+        }
+
+        await DisplayAlertAsync(
+            "Alert sent",
+            string.IsNullOrEmpty(targetFriendId)
+                ? "Your friends will be notified shortly."
+                : "Your friend will be notified shortly.",
+            "OK");
+    }
+
 
     private async void SendFriendRequest(string _userID, string _friendID, bool _isCloseFrnd)
     {
@@ -1159,6 +1268,7 @@ public partial class MapPage : ContentPage
             CurrentUser = pUser;        // Update CurrentUser variable
             await UpdateAppToProfile(pUser);
             CurrentUser = pUser;
+            await FcmDeviceRegistration.RegisterAsync(currentFirebaseUserId);
         }
     }
 
@@ -1195,6 +1305,7 @@ public partial class MapPage : ContentPage
 
         currentFirebaseUserId = pId;
         await _db.ConnectUserToDb(pId, pNewProf, needToUpdate);
+        await FcmDeviceRegistration.RegisterAsync(currentFirebaseUserId);
 
         await DisplayAlertAsync("SUCCESS!", "You're officially in!", "Yay");
 
@@ -1285,7 +1396,7 @@ public partial class MapPage : ContentPage
         string pFriendID = (string)e.Parameter!;
         var pFriend = CurrentUser!.FriendList.Find(f => f.UniqueId == pFriendID) ?? throw new Exception($"Friend with ID {pFriendID} not found in the current user's friend list.");
 
-        pFriend.isCloseFriend  = !pFriend.isCloseFriend;        // Toggle the close friend status
+        pFriend.isCloseFriend = !pFriend.isCloseFriend;        // Toggle the close friend status
 
 
         // Reorder the friends list to have close friends at the top
@@ -1477,7 +1588,7 @@ public partial class MapPage : ContentPage
 
     async Task GetAllVisibleAlerts()
     {
-        var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId, true,true);
+        var pAlerts = await _db.RetrieveAlertMarkers(currentFirebaseUserId, true, true);
 
         for (int i = 0; i < pAlerts.Count; i++)
         {
