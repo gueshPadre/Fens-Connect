@@ -656,5 +656,47 @@ namespace FENS_Connect
             }
         }
 
+        /// <summary>
+        /// Creates a cloud-managed friend request Alert. A Cloud Function sends FCM — the client never sends push directly.
+        /// </summary>
+        public async Task<string?> CreateFriendRequestAlertRequestAsync(
+            string fromUserId,
+            double lat,
+            double lng,
+            string? targetFriendId = null,
+            string type = "friendRequest")
+        {
+            if (string.IsNullOrWhiteSpace(fromUserId))
+                return null;
+
+            try
+            {
+                await ConnectToDb();
+                var requestRef = myDb.Collection("AlertRequests").Document();
+                var data = new Dictionary<string, object>
+                {
+                    { "fromUserId", fromUserId },
+                    { "createdAt", Timestamp.GetCurrentTimestamp() },
+                    { "type", type },
+                    { "lat", lat },
+                    { "lng", lng },
+                    { "status", "pending" }
+                };
+
+                if (!string.IsNullOrWhiteSpace(targetFriendId))
+                    data["targetFriendId"] = targetFriendId;
+
+                await requestRef.SetAsync(data);
+                Debug.WriteLine($"[FCM] AlertRequest created: {requestRef.Id}");
+                return requestRef.Id;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FCM] Failed to create AlertRequest: {ex.Message}");
+                return null;
+            }
+        }
+
+
     }
 }

@@ -4,6 +4,8 @@ using Android.OS;
 using Firebase.Auth;
 using Firebase.Messaging;
 using SysDebug = System.Diagnostics.Debug;
+using CommunityToolkit.Mvvm.Messaging;
+using FENS_Connect.Messages;
 
 namespace FENS_Connect.Platforms.Android.Firebase;
 
@@ -74,6 +76,10 @@ public class FensFirebaseMessagingService : FirebaseMessagingService
         {
             builder.SetStyle(new Notification.BigTextStyle().BigText($"{body}\nLocation: {lat}, {lng}"));
         }
+
+        // Sends an event to whoever's listening (MapPage is)
+        WeakReferenceMessenger.Default.Send(
+            new FriendAlertMessage(data));
 
         var manager = NotificationManager.FromContext(this);
         manager?.Notify(NotificationIdBase + Random.Shared.Next(0, 999), builder.Build());

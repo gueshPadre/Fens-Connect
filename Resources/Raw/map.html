@@ -318,7 +318,25 @@
                 url.toString();
         }
 
+        // Create marker where the friend has sent the alert from
+        function createfriendMarker(lat, lng) {
+            // Create the on map caution alert sign
+            const alertEl = document.createElement('div');
+            alertEl.id = 'friendMarker'
+            alertEl.className = 'alert-marker';
 
+            const alertImg = document.createElement('img');
+            alertImg.className = 'alert-Img';
+
+            alertImg.src = 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/friendSymbol.png';
+            alertEl.appendChild(alertImg);
+
+            const aM = new mapboxgl.Marker({
+                element: alertEl
+            })
+                .setLngLat([lng,lat])
+                .addTo(map);
+        }
 
         function showAlertNote(alertMarker) {
             // Check if already has note

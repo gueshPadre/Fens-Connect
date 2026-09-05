@@ -171,6 +171,16 @@ const PRECOOKED_BUSINESSES = [
         close: ['22:00', '22:00', '22:00', '22:00', '22:00', '22:00', '22:00']
     },
     {
+        name: 'Cafe Malabar',
+        safeword: 'cumin bar',
+        alternativeExit: 'Yes',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/CafeMalabar_star.png',
+        lng: - 123.37101763558191,
+        lat: 48.42941082139318,
+        open: ['00:00', '00:00', '12:00', '12:00', '12:00', '12:00', '12:00'],
+        close: ['00:00', '00:00', '20:30', '20:30', '20:30', '20:30', '20:30']
+    },
+    {
         name: 'Vancouver Art Gallery',
         safeword: '',
         alternativeExit: '',
@@ -199,7 +209,7 @@ const PRECOOKED_BUSINESSES = [
         lat: 49.278864165446805,
         open: ['00:00', '00:00', '00:00', '00:00', '00:00', '00:00', '00:00'],
         close: ['23:59', '23:59', '23:59', '23:59', '23:59', '23:59', '23:59']
-    }
+    },
 ];
 
 window.Business = Business;

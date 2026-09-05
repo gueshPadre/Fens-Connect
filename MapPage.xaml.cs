@@ -9,6 +9,9 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using FENS_Connect.Messages;
+using CommunityToolkit.Maui.Behaviors;
 
 namespace FENS_Connect;
 
@@ -188,6 +191,17 @@ public partial class MapPage : ContentPage
         // Listen for notification tap
         if (LocalNotificationCenter.Current != null)
             LocalNotificationCenter.Current.NotificationActionTapped += OnNotificationActionTapped;
+
+        WeakReferenceMessenger.Default.Register<FriendAlertMessage>(
+            this, (recipient, message) =>
+            {
+                var data = message.Value;
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    HandleFriendAlert(data);
+                });
+            });
     }
 
     // Local notification tap event handler. So when the user taps on a notification that is only his
@@ -236,6 +250,11 @@ public partial class MapPage : ContentPage
 
             }
         }
+    }
+
+    public void ShowFriendPosition(IDictionary<string, string> _data)
+    {
+
     }
 
     protected override void OnDisappearing()
@@ -1071,6 +1090,27 @@ public partial class MapPage : ContentPage
                 ? "Your friends will be notified shortly."
                 : "Your friend will be notified shortly.",
             "OK");
+    }
+
+
+    // Handles what should happen whenever the fruebd alert notif is pressed. Event handler
+    private async void HandleFriendAlert(IDictionary<string, string> data)
+    {
+        if (data.TryGetValue("type", out var type))
+        {
+            if (type == "friend_sos")
+            {
+                if (data.TryGetValue("lat", out var lat) && data.TryGetValue("lng", out var lng))
+                {
+                    // Create a pin for the friend's location
+                    await MapView.EvaluateJavaScriptAsync($"createfriendMarker('{lat}','{lng}')");
+                }
+                // Do whatever you want here
+                // Show your alert
+                // Update the map
+                // etc.
+            }
+        }
     }
 
 
