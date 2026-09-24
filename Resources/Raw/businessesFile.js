@@ -181,6 +181,76 @@ const PRECOOKED_BUSINESSES = [
         close: ['00:00', '00:00', '20:30', '20:30', '20:30', '20:30', '20:30']
     },
     {
+        name: 'Syriana Restaurant',
+        safeword: 'melted veggies',
+        alternativeExit: 'Yes',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/Syrianna_star.png',
+        lng: - 123.41620112217493,
+        lat: 48.43068903100649,
+        open: ['09:00', '09:00', '09:00', '09:00', '09:00', '09:00', '09:00'],
+        close: ['21:00', '21:00', '21:00', '21:00', '21:00', '21:00', '21:00']
+    },
+    {
+        name: 'Thrive and Shine',
+        safeword: 'Shiny muffin',
+        alternativeExit: 'No',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/Thrive_star.png',
+        lng: - 123.42107805214896,
+        lat: 48.4377746698216,
+        open: ['07:00', '07:00', '07:00', '07:00', '07:00', '08:00', '08:00'],
+        close: ['15:00', '15:00', '15:00', '15:00', '15:00', '15:00', '15:00']
+    },
+    {
+        name: 'Herald Street Brew Works',
+        safeword: 'Tomato malt',
+        alternativeExit: 'Yes',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/Herald_star.png',
+        lng: - 123.3693958070206,
+        lat: 48.4304357735693,
+        open: ['12:00', '12:00', '12:00', '12:00', '12:00', '12:00', '12:00'],
+        close: ['22:00', '22:00', '22:00', '22:00', '23:00', '23:00', '21:00']
+    },
+    {
+        name: '10 Acres Common',
+        safeword: '23 Acres',
+        alternativeExit: 'Yes',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/10Acres_star.png',
+        lng: - 123.36774227561662,
+        lat: 48.422923399800304,
+        open: ['11:30', '11:30', '11:30', '11:30', '11:30', '11:30', '11:30'],
+        close: ['00:00', '00:00', '00:00', '00:00', '01:00', '01:00', '23:00']
+    },
+    {
+        name: '10 Acres Bistro',
+        safeword: '23 Acres',
+        alternativeExit: 'Yes',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/10Acres_star.png',
+        lng: - 123.3675759786685,
+        lat: 48.42340399380689,
+        open: ['11:00', '11:00', '11:00', '11:00', '11:00', '10:00', '10:00'],
+        close: ['23:00', '23:00', '23:00', '23:00', '00:00', '00:00', '23:00']
+    },
+    {
+        name: 'Spoons Diner',
+        safeword: 'Spoonful Sugar',
+        alternativeExit: 'No',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/Spoons_star.png',
+        lng: - 123.3685866355822,
+        lat: 48.44211063808607,
+        open: ['07:00', '07:00', '07:00', '07:00', '07:00', '07:00', '07:00'],
+        close: ['15:00', '15:00', '15:00', '15:00', '15:00', '15:00', '15:00']
+    },
+    {
+        name: 'Spinnakers Gastro Brewpub',
+        safeword: 'Beer Spin',
+        alternativeExit: 'Yes',
+        imgSrc: 'https://pub-0c6f5b8a360c417e9ac2670079e7c2c9.r2.dev/Spinnakers_star.png',
+        lng: - 123.38495459154198,
+        lat: 48.42907987390003,
+        open: ['09:00', '09:00', '09:00', '09:00', '09:00', '09:00', '09:00'],
+        close: ['23:00', '23:00', '23:00', '23:00', '23:00', '23:00', '23:00']
+    },
+    {
         name: 'Vancouver Art Gallery',
         safeword: '',
         alternativeExit: '',

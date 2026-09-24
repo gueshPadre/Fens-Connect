@@ -711,7 +711,7 @@ public partial class MapPage : ContentPage
         }
 
         // Go to my location
-        await MapView.EvaluateJavaScriptAsync($"flyToStartLoc({lng},{lat})");
+        await MapView.EvaluateJavaScriptAsync($"flyToLoc({lng},{lat})");
 
         // Load all markers on the map
         await LoadAllMarkers();
@@ -875,7 +875,7 @@ public partial class MapPage : ContentPage
         await MapView.EvaluateJavaScriptAsync($"displayFullList()");
     }
 
-    private void FriendTabClicked(object? sender, TappedEventArgs e)
+    private void FriendTabClicked(object? sender, TappedEventArgs? e)
     {
         // Show a list of friends
         FriendsMenu.IsVisible = !FriendsMenu.IsVisible;
@@ -1093,30 +1093,77 @@ public partial class MapPage : ContentPage
     }
 
 
-    // Handles what should happen whenever the fruebd alert notif is pressed. Event handler
+    // Handles when App is open and getting notification of a friend alert
     private async void HandleFriendAlert(IDictionary<string, string> data)
     {
+        Debug.WriteLine($"[FCM] rECEIVED NOTIF with: {data["type"]}");
         if (data.TryGetValue("type", out var type))
         {
             if (type == "friend_sos")
             {
+                // If they're sharing their location
                 if (data.TryGetValue("lat", out var lat) && data.TryGetValue("lng", out var lng))
                 {
                     // Create a pin for the friend's location
-                    await MapView.EvaluateJavaScriptAsync($"createfriendMarker('{lat}','{lng}')");
+                    await MapView.EvaluateJavaScriptAsync($"createfriendMarker('{lng}','{lat}')");
+
+                    await MapView.EvaluateJavaScriptAsync($"flyToLoc('{lng}','{lat}')");
+
+                    // get distance between the two
+                    string url =
+                        $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
+                        $"{currentLoc.Longitude},{currentLoc.Latitude};{lng},{lat}" +
+                        $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
+
+                    await Task.Delay(2000);     // wait 2 seconds to let time to see where homeboy is
+
+                    Debug.WriteLine($"[FCM] Friend wants to send an SOS");
+                    if (data.TryGetValue("fromName", out var frmName))
+                        await GetDirrectionsAsync(url, frmName);
+                    else
+                        await GetDirrectionsAsync(url, "A friend");
+
                 }
                 // Do whatever you want here
                 // Show your alert
                 // Update the map
                 // etc.
             }
+            else if (type == "friendRequest")
+            {
+                try
+                {
+                    await UpdateAppToProfile(CurrentUser);
+                    // Handle friend request alert
+                    FriendsMenu.IsVisible = true;
+                    OnShowRequestsListTap(null, null);
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine($"[FCM] friend request alert failed cuz: {e.Message}");
+                }
+            }
         }
     }
+
 
 
     private async void SendFriendRequest(string _userID, string _friendID, bool _isCloseFrnd)
     {
         _db.SendRequest(_userID, _friendID, CurrentUser!.DisplayName, CurrentUser.Name, _isCloseFrnd);
+
+        var requestId = await _db.CreateFriendRequestAlertRequestAsync(
+            currentFirebaseUserId,
+            _friendID
+        );
+
+        if (requestId == null)
+        {
+            await DisplayAlertAsync("Error", "Could not send alert. Please try again.", "OK");
+            return;
+        }
+
+        await DisplayAlertAsync("Request sent", "Your friend will be alerted soon", "OK");
     }
 
 
@@ -1385,13 +1432,13 @@ public partial class MapPage : ContentPage
         BackFromFriendsSearch(null, new EventArgs());
     }
 
-    private void CloseFriendFoundMenu(object? sender, TappedEventArgs e)
+    private void CloseFriendFoundMenu(object? sender, TappedEventArgs? e)
     {
         BackFromFriendsSearch(null, new EventArgs());
         AddFriendMenuBorder.IsVisible = true;
     }
 
-    private void OnShowRequestsListTap(object? sender, TappedEventArgs e)
+    private void OnShowRequestsListTap(object? sender, TappedEventArgs? e)
     {
         SelectRequests();
         FriendsListCollectionView.IsVisible = false;
@@ -1411,7 +1458,7 @@ public partial class MapPage : ContentPage
         FriendsTabLabel.Style = UnselectedTabLabelStyle;
     }
 
-    private void OnShowFriendsListTap(object? sender, TappedEventArgs e)
+    private void OnShowFriendsListTap(object? sender, TappedEventArgs? e)
     {
         SelectFriends();
         FriendRequestsCollectionView.IsVisible = false;
@@ -1448,28 +1495,46 @@ public partial class MapPage : ContentPage
     private async void OnAcceptFriendRequest(object? sender, TappedEventArgs e)
     {
         FriendRequest? fr = e.Parameter as FriendRequest;
-        var frnd = await _db.AddFriend(fr!.SenderId, false, currentFirebaseUserId);  // Automatically add the friend as a non-close friend when accepting the request
-        FriendsListCollection.Add(frnd);
-
-        // Reorder the friends list to have close friends at the top
-        ReorderFriendList();
-
-
-        // add this user to the other person's friend list as well
-        await _db.AddFriendForOtherUser(fr.SenderId, currentFirebaseUserId, CurrentUser!.Name, CurrentUser.DisplayName);
-
-
-        // Remove the accepted friend request from the collection
-        await _db.RemoveRequests(fr.SenderId, currentFirebaseUserId);
-        var pReqToRem = FriendsRequestCollection.Where(a => a.SenderId == fr.SenderId).ToList();
-        FriendsRequestCollection.Remove(pReqToRem.First());         // Should always only be one request from a specific user, so we can safely remove the first one
-        if (FriendsRequestCollection.Count < 1) { friendRqstCircleImg.IsVisible = false; }
-
-
-        OnShowFriendsListTap(null, null); // Refresh the friends list to show the updated state
-        //Update markers from friends
-        await GetAllVisibleAlerts();
+        AcceptFriendRequest(fr);
     }
+
+
+    private async void AcceptFriendRequest(FriendRequest fr)
+    {
+        try
+        {
+
+            var frnd = await _db.AddFriend(fr!.SenderId, false, currentFirebaseUserId);  // Automatically add the friend as a non-close friend when accepting the request
+            FriendsListCollection.Add(frnd);
+
+            // Reorder the friends list to have close friends at the top
+            ReorderFriendList();
+
+
+            // add this user to the other person's friend list as well
+            await _db.AddFriendForOtherUser(fr.SenderId, currentFirebaseUserId, CurrentUser!.Name, CurrentUser.DisplayName);
+
+
+            // Remove the accepted friend request from the collection
+            await _db.RemoveRequests(fr.SenderId, currentFirebaseUserId);
+            var pReqToRem = FriendsRequestCollection.Where(a => a.SenderId == fr.SenderId).ToList();
+            FriendsRequestCollection.Remove(pReqToRem.First());         // Should always only be one request from a specific user, so we can safely remove the first one
+            if (FriendsRequestCollection.Count < 1) { friendRqstCircleImg.IsVisible = false; }
+
+
+            OnShowFriendsListTap(null, null); // Refresh the friends list to show the updated state
+                                              //Update markers from friends
+            await GetAllVisibleAlerts();
+
+            await Shell.Current.GoToAsync($"{nameof(MapPage)}");
+        }
+        catch (Exception e)
+        {
+            Debug.WriteLine($"[FCM] FAILED BECAUSE: {e.Message}");
+        }
+    }
+
+
 
     void ReorderFriendList()
     {

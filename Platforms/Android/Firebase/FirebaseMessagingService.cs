@@ -39,8 +39,6 @@ public class FensFirebaseMessagingService : FirebaseMessagingService
 
     public override void OnMessageReceived(RemoteMessage message)
     {
-        SysDebug.WriteLine($"[FCM] RECEIVED MESSAGE?!: {message}");
-        
         base.OnMessageReceived(message);
 
         var title = message.GetNotification()?.Title
@@ -72,10 +70,10 @@ public class FensFirebaseMessagingService : FirebaseMessagingService
             .SetContentIntent(pendingIntent)
             .SetPriority((int)NotificationPriority.High);
 
-        if (data != null && data.TryGetValue("lat", out var lat) && data.TryGetValue("lng", out var lng))
-        {
-            builder.SetStyle(new Notification.BigTextStyle().BigText($"{body}\nLocation: {lat}, {lng}"));
-        }
+        //if (data != null && data.TryGetValue("lat", out var lat) && data.TryGetValue("lng", out var lng))
+        //{
+        //    builder.SetStyle(new Notification.BigTextStyle().BigText($"{body}\nLocation: {lat}, {lng}"));
+        //}
 
         // Sends an event to whoever's listening (MapPage is)
         WeakReferenceMessenger.Default.Send(

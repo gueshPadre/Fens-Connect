@@ -631,9 +631,12 @@ namespace FENS_Connect
             try
             {
                 await ConnectToDb();
-                var requestRef = myDb.Collection("AlertRequests").Document();
+                Random ran = new Random();
+                string alertId = fromUserId.Substring(0, 4) + ran.Next(1000, 9999); // Generate a unique ID for the alert request
+                var requestRef = myDb.Collection("AlertRequests").Document(alertId);
                 var data = new Dictionary<string, object>
                 {
+                    { "alertId", alertId },
                     { "fromUserId", fromUserId },
                     { "createdAt", Timestamp.GetCurrentTimestamp() },
                     { "type", type },
@@ -661,9 +664,7 @@ namespace FENS_Connect
         /// </summary>
         public async Task<string?> CreateFriendRequestAlertRequestAsync(
             string fromUserId,
-            double lat,
-            double lng,
-            string? targetFriendId = null,
+            string targetFriendId,
             string type = "friendRequest")
         {
             if (string.IsNullOrWhiteSpace(fromUserId))
@@ -672,19 +673,20 @@ namespace FENS_Connect
             try
             {
                 await ConnectToDb();
+                Random ran = new Random();
                 var requestRef = myDb.Collection("AlertRequests").Document();
                 var data = new Dictionary<string, object>
                 {
+                    { "alertId", requestRef.Id },
                     { "fromUserId", fromUserId },
                     { "createdAt", Timestamp.GetCurrentTimestamp() },
                     { "type", type },
-                    { "lat", lat },
-                    { "lng", lng },
+                    { "targetFriendId", targetFriendId },
                     { "status", "pending" }
                 };
 
-                if (!string.IsNullOrWhiteSpace(targetFriendId))
-                    data["targetFriendId"] = targetFriendId;
+                //if (!string.IsNullOrWhiteSpace(targetFriendId))
+                //    data["targetFriendId"] = targetFriendId;
 
                 await requestRef.SetAsync(data);
                 Debug.WriteLine($"[FCM] AlertRequest created: {requestRef.Id}");
@@ -696,7 +698,5 @@ namespace FENS_Connect
                 return null;
             }
         }
-
-
     }
 }

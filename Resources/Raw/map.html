@@ -163,7 +163,7 @@
         const markerList = [];
         const nameList = [];
         const businessList = [];
-        function flyToStartLoc(lng, lat) {
+        function flyToLoc(lng, lat) {
             map.flyTo({
                 center: [lng, lat],
                 speed: 50,
@@ -319,7 +319,7 @@
         }
 
         // Create marker where the friend has sent the alert from
-        function createfriendMarker(lat, lng) {
+        function createfriendMarker(lng, lat) {
             // Create the on map caution alert sign
             const alertEl = document.createElement('div');
             alertEl.id = 'friendMarker'
@@ -336,6 +336,8 @@
             })
                 .setLngLat([lng,lat])
                 .addTo(map);
+
+                
         }
 
         function showAlertNote(alertMarker) {
