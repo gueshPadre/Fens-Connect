@@ -1143,6 +1143,20 @@ public partial class MapPage : ContentPage
                     Debug.WriteLine($"[FCM] friend request alert failed cuz: {e.Message}");
                 }
             }
+            else if (type == "friendRequestAccepted")
+            {
+                try
+                {
+                    await UpdateAppToProfile(CurrentUser);
+                    // Handle friend request alert
+                    FriendsMenu.IsVisible = true;
+                    OnShowFriendsListTap(null, null);
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine($"[FCM] friend request alert failed cuz: {e.Message}");
+                }
+            }
         }
     }
 
@@ -1503,7 +1517,6 @@ public partial class MapPage : ContentPage
     {
         try
         {
-
             var frnd = await _db.AddFriend(fr!.SenderId, false, currentFirebaseUserId);  // Automatically add the friend as a non-close friend when accepting the request
             FriendsListCollection.Add(frnd);
 
@@ -1526,7 +1539,11 @@ public partial class MapPage : ContentPage
                                               //Update markers from friends
             await GetAllVisibleAlerts();
 
-            await Shell.Current.GoToAsync($"{nameof(MapPage)}");
+            //await Shell.Current.GoToAsync($"{nameof(MapPage)}");
+
+            var requestId = await _db.CreateFriendRequestAlertRequestAsync(
+            currentFirebaseUserId,
+            frnd.UniqueId, "friendRequestAccepted");
         }
         catch (Exception e)
         {
