@@ -169,7 +169,7 @@ namespace FENS_Connect
         }
 
 
-        public async void UpdateSettings(string _uID)
+        public async Task<bool> UpdateSettings(string _uID)
         {
             try
             {
@@ -191,8 +191,9 @@ namespace FENS_Connect
             catch (Exception ex) 
             {
                 Debug.WriteLine($"[FB] ERROR in updating settings: {ex.Message}");
-                throw; // rethrow the exception to be handled by the caller
+                return false; // rethrow the exception to be handled by the caller
             }
+            return true;
         }
 
         /// <summary>

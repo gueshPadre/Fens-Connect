@@ -155,7 +155,19 @@ public partial class MapPage : ContentPage
     public static UserProfile? CurrentUser { get; private set; }
 
 
+    private float maxAloneTimeBeforeNotification = 120f; // in seconds
+    //private bool isAlone;
     public bool IsAlone { get; set; }
+    //{
+        //get => isAlone;
+        //set
+        //{
+        //    isAlone = value;
+
+        //    //StartAloneTimer();
+        //}
+    //}
+
     public string City
     {
         get => _city;
@@ -245,9 +257,10 @@ public partial class MapPage : ContentPage
             {
                 await DisplayAlertAsync("Error", $"Could not load user profile data. {ex.Message}", "Refresh");
 
-                _db.UpdateSettings(currentFirebaseUserId);
-                await Shell.Current.GoToAsync($"{nameof(MapPage)}");
-
+                if(await _db.UpdateSettings(currentFirebaseUserId))         // if the settings can be updated, refresh
+                {
+                    await Shell.Current.GoToAsync($"{nameof(MapPage)}");
+                }
             }
         }
     }
@@ -923,6 +936,34 @@ public partial class MapPage : ContentPage
         }
     }
 
+    private async void StartAloneTimer()
+    {
+        if (IsAlone)
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+            while (await timer.WaitForNextTickAsync())
+            {
+                maxAloneTimeBeforeNotification -= 1;        // reduce every second
+                if (maxAloneTimeBeforeNotification <= 0)
+                {
+                    // Trigger notification or alert
+                    MainThread.BeginInvokeOnMainThread(async () =>
+                    {
+                        await DisplayAlertAsync("Alert", "You've been alone for a while. Please check in.", "OK");
+                    });
+                    // Reset the timer
+                    maxAloneTimeBeforeNotification = 10f; // Reset to 2 minutes
+                }
+            }
+        }
+        else
+        {
+            // Reset the timer when not in alone mode
+            maxAloneTimeBeforeNotification = 120f;
+        }
+    }
+
     private void OnAloneModeChanged(object? sender, bool isAlone)
     {
         MainThread.BeginInvokeOnMainThread(() => SetAloneMode(isAlone, saveState: false));
@@ -1147,7 +1188,10 @@ public partial class MapPage : ContentPage
             {
                 try
                 {
+                    // get the updated friend list.
+                    CurrentUser = await _db.RetrieveUserInfo(currentFirebaseUserId);
                     await UpdateAppToProfile(CurrentUser);
+
                     // Handle friend request alert
                     FriendsMenu.IsVisible = true;
                     OnShowFriendsListTap(null, null);
@@ -1538,8 +1582,6 @@ public partial class MapPage : ContentPage
             OnShowFriendsListTap(null, null); // Refresh the friends list to show the updated state
                                               //Update markers from friends
             await GetAllVisibleAlerts();
-
-            //await Shell.Current.GoToAsync($"{nameof(MapPage)}");
 
             var requestId = await _db.CreateFriendRequestAlertRequestAsync(
             currentFirebaseUserId,
