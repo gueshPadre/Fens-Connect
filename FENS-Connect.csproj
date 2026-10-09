@@ -71,12 +71,12 @@
 	</ItemGroup>
   
 	<ItemGroup>
-	  <None Remove="fens-connect-db-firebase-adminsdk-fbsvc-f84005c877.json" />
+	  <None Remove="fens-connect-db-firebase-adminsdk-fbsvc-8ab73c2c8d.json" />
 	  <None Remove="Platforms\Android\Resources\layout\alone_widget.xml" />
 	</ItemGroup>
   
 	<ItemGroup>
-	  <EmbeddedResource Include="fens-connect-db-firebase-adminsdk-fbsvc-f84005c877.json">
+	  <EmbeddedResource Include="fens-connect-db-firebase-adminsdk-fbsvc-8ab73c2c8d.json">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </EmbeddedResource>
 	</ItemGroup>

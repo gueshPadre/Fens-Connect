@@ -20,7 +20,7 @@ namespace FENS_Connect
             var assembly = Assembly.GetExecutingAssembly();
 
             // 2. Locate the resource name. 
-            string resourceName = "fens-connect-db-firebase-adminsdk-fbsvc-8ab73c2c8d.json";
+            string resourceName = "FENS_Connect.fens-connect-db-firebase-adminsdk-fbsvc-8ab73c2c8d.json";
 
             string jsonCredentials = "";
             using (Stream stream = assembly.GetManifestResourceStream(resourceName))
