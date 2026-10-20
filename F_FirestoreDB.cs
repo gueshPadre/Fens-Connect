@@ -97,7 +97,7 @@ namespace FENS_Connect
                 }
 
                 var pSettingsRef = pRef.Collection("UserSettings");
-                if(_user.UserSettings == null)
+                if (_user.UserSettings == null)
                 {
                     _user.UserSettings = new Dictionary<string, bool>();
                     _user.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY] = true; // default value
@@ -188,7 +188,7 @@ namespace FENS_Connect
                 };
                 await pSettingsRef.Document("GeneralSettings").SetAsync(pSettingsData, SetOptions.MergeAll);
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 Debug.WriteLine($"[FB] ERROR in updating settings: {ex.Message}");
                 return false; // rethrow the exception to be handled by the caller
@@ -203,7 +203,7 @@ namespace FENS_Connect
         /// <param name="_user"></param>
         public async void UpdateSettings(string _uID, MapPage.UserProfile _user)
         {
-            if(myDb == null)
+            if (myDb == null)
             {
                 await ConnectToDb();
             }
@@ -274,7 +274,7 @@ namespace FENS_Connect
 
                     if (!_includeNonAvailables)  // If we're not checking friends, we only want to add alerts that are available from our friends
                     {
-                        if(availableToFriends == false)
+                        if (availableToFriends == false)
                         {
                             continue; // Skip this alert if it's not available to friends
                         }
@@ -623,9 +623,9 @@ namespace FENS_Connect
             string fromUserId,
             double lat,
             double lng,
-            string? targetFriendId = null,
-            string type = "friend_sos")
+            string[] targetFriendIds)
         {
+            string type = "friend_sos";
             if (string.IsNullOrWhiteSpace(fromUserId))
                 return null;
 
@@ -633,11 +633,10 @@ namespace FENS_Connect
             {
                 await ConnectToDb();
                 Random ran = new Random();
-                string alertId = fromUserId.Substring(0, 4) + ran.Next(1000, 9999); // Generate a unique ID for the alert request
-                var requestRef = myDb.Collection("AlertRequests").Document(alertId);
+                var requestRef = myDb.Collection("AlertRequests").Document();
                 var data = new Dictionary<string, object>
                 {
-                    { "alertId", alertId },
+                    { "alertId", requestRef.Id },
                     { "fromUserId", fromUserId },
                     { "createdAt", Timestamp.GetCurrentTimestamp() },
                     { "type", type },
@@ -646,8 +645,8 @@ namespace FENS_Connect
                     { "status", "pending" }
                 };
 
-                if (!string.IsNullOrWhiteSpace(targetFriendId))
-                    data["targetFriendId"] = targetFriendId;
+                if (targetFriendIds != null && targetFriendIds.Length > 0)
+                    data["targetFriendIds"] = targetFriendIds;
 
                 await requestRef.SetAsync(data);
                 Debug.WriteLine($"[FCM] AlertRequest created: {requestRef.Id}");
@@ -666,7 +665,7 @@ namespace FENS_Connect
         public async Task<string?> CreateFriendRequestAlertRequestAsync(
             string fromUserId,
             string targetFriendId,
-            string type = "friendRequest")
+            string type)
         {
             if (string.IsNullOrWhiteSpace(fromUserId))
                 return null;
@@ -699,5 +698,82 @@ namespace FENS_Connect
                 return null;
             }
         }
+
+        /// <summary>
+        /// Creates a cloud-managed alert request for "Alone Mode". A Cloud Function sends FCM — the client never sends push directly.
+        /// Gets created after the user stays in alone mode for an extended period of time.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<string?> CreateAloneModeAlertRequestAsync(
+            string fromUserId,
+            string[]? targetFriendIds,
+            double lat,
+            double lng)
+        {
+            string type = "alone_mode";
+            if (string.IsNullOrWhiteSpace(fromUserId))
+                return null;
+
+            try
+            {
+                await ConnectToDb();
+                Random ran = new Random();
+                var requestRef = myDb.Collection("AlertRequests").Document();
+                var data = new Dictionary<string, object>
+                {
+                    { "alertId", requestRef.Id },
+                    { "fromUserId", fromUserId },
+                    { "createdAt", Timestamp.GetCurrentTimestamp() },
+                    { "type", type },
+                    { "lat", lat },
+                    { "lng", lng },
+                    { "status", "pending" }
+                };
+
+                if (targetFriendIds != null && targetFriendIds.Length > 0)
+                    data["targetFriendIds"] = targetFriendIds;
+
+                await requestRef.SetAsync(data);
+                Debug.WriteLine($"[FCM] ALONE MODE AlertRequest created: {requestRef.Id}");
+                return requestRef.Id;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FCM] Failed to create AlertRequest: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Get the data from an alertID
+        /// </summary>
+        /// <param name="alertId"></param>
+        /// <returns></returns>
+        public async Task<Dictionary<string, object>?> GetAlertRequestAsync(string alertId)
+        {
+            try
+            {
+                await ConnectToDb();
+                var requestRef = myDb.Collection("AlertRequests").Document(alertId);
+                var snapshot = await requestRef.GetSnapshotAsync();
+                if (snapshot.Exists)
+                {
+                    return snapshot.ToDictionary();
+                }
+                else
+                {
+                    Debug.WriteLine($"[FCM] AlertRequest not found: {alertId}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[FCM] Failed to get AlertRequest: {ex.Message}");
+                return null;
+            }
+
+        }
+
+
     }
 }

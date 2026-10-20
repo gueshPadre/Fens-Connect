@@ -155,18 +155,16 @@ public partial class MapPage : ContentPage
     public static UserProfile? CurrentUser { get; private set; }
 
 
-    private float maxAloneTimeBeforeNotification = 120f; // in seconds
-    //private bool isAlone;
-    public bool IsAlone { get; set; }
-    //{
-        //get => isAlone;
-        //set
-        //{
-        //    isAlone = value;
-
-        //    //StartAloneTimer();
-        //}
-    //}
+    private float maxAloneTimeBeforeNotification = 10f; // in seconds
+    private bool isAlone;
+    public bool IsAlone
+    {
+        get => isAlone;
+        set
+        {
+            isAlone = value;
+        }
+    }
 
     public string City
     {
@@ -257,7 +255,7 @@ public partial class MapPage : ContentPage
             {
                 await DisplayAlertAsync("Error", $"Could not load user profile data. {ex.Message}", "Refresh");
 
-                if(await _db.UpdateSettings(currentFirebaseUserId))         // if the settings can be updated, refresh
+                if (await _db.UpdateSettings(currentFirebaseUserId))         // if the settings can be updated, refresh
                 {
                     await Shell.Current.GoToAsync($"{nameof(MapPage)}");
                 }
@@ -417,7 +415,7 @@ public partial class MapPage : ContentPage
     /// When clicked on the "send alert to friends" button or the alert friends on map
     async void SendFriendAlert(string _url)
     {
-        await SendCloudFriendAlertAsync(targetFriendId: null);
+        SendAlertToFriends(null, null);
     }
 
 
@@ -918,6 +916,8 @@ public partial class MapPage : ContentPage
     private void ActivateAloneMode(object? sender, TappedEventArgs e)
     {
         ToggleAloneMode();
+
+        StartAloneTimer();
     }
 
     public void ToggleAloneMode()
@@ -925,9 +925,9 @@ public partial class MapPage : ContentPage
         SetAloneMode(!IsAlone);
     }
 
-    public void SetAloneMode(bool isAlone, bool saveState = true)
+    public void SetAloneMode(bool _isAlone, bool saveState = true)
     {
-        IsAlone = isAlone;
+        IsAlone = _isAlone;
         AloneCheckMark.IsVisible = IsAlone;
 
         if (saveState)
@@ -944,23 +944,53 @@ public partial class MapPage : ContentPage
 
             while (await timer.WaitForNextTickAsync())
             {
+                if (isAlone == false) break;
                 maxAloneTimeBeforeNotification -= 1;        // reduce every second
                 if (maxAloneTimeBeforeNotification <= 0)
                 {
+                    double lat = currentLoc?.Latitude ?? 0;
+                    double lng = currentLoc?.Longitude ?? 0;
+                    // if currentLoc is null, try to get the location again
+                    if (currentLoc == null)
+                    {
+                        try
+                        {
+                            var loc = await Geolocation.GetLocationAsync(new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(8)));
+                            if (loc != null)
+                            {
+                                lat = loc.Latitude;
+                                lng = loc.Longitude;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[FCM] Could not get location for alert: {ex.Message}");
+                        }
+                    }
+                    var friendList = CurrentUser!.FriendList;
+                    List<string> friendIds = new List<string>();
+                    foreach (var friendInfo in friendList)
+                    {
+                        friendIds.Add(friendInfo.UniqueId);
+                    }
+
                     // Trigger notification or alert
                     MainThread.BeginInvokeOnMainThread(async () =>
                     {
-                        await DisplayAlertAsync("Alert", "You've been alone for a while. Please check in.", "OK");
+                        var requestId = await _db.CreateAloneModeAlertRequestAsync(
+                            currentFirebaseUserId, friendIds.ToArray(), lat, lng);
+                        await DisplayAlertAsync("alert SEnt", "it's been a time", "OK");
                     });
-                    // Reset the timer
-                    maxAloneTimeBeforeNotification = 10f; // Reset to 2 minutes
+
+                    timer.Dispose();
+                    break;
                 }
             }
         }
         else
         {
             // Reset the timer when not in alone mode
-            maxAloneTimeBeforeNotification = 120f;
+            maxAloneTimeBeforeNotification = 10f;
         }
     }
 
@@ -1055,7 +1085,14 @@ public partial class MapPage : ContentPage
 
     private async void SendAlertToFriends(object? sender, EventArgs e)
     {
-        await SendCloudFriendAlertAsync(targetFriendId: null);
+        var friendList = CurrentUser!.FriendList;
+        List<string> friendIds = new List<string>();
+        foreach (var friendInfo in friendList)
+        {
+            friendIds.Add(friendInfo.UniqueId);
+        }
+
+        await SendCloudFriendAlertAsync(friendIds.ToArray());
     }
 
     // Triggered when clicking on the "Add Friend" button in the friends menu
@@ -1082,10 +1119,10 @@ public partial class MapPage : ContentPage
             friendId = e.Parameter.ToString();
 
         Debug.WriteLine($"[TAP] Alerting specific friend with ID: {friendId}");
-        await SendCloudFriendAlertAsync(targetFriendId: friendId);
+        await SendCloudFriendAlertAsync(targetFriendIds: new string[] { friendId! });
     }
 
-    private async Task SendCloudFriendAlertAsync(string? targetFriendId)
+    private async Task SendCloudFriendAlertAsync(string[] targetFriendIds)
     {
         if (string.IsNullOrEmpty(currentFirebaseUserId))
         {
@@ -1117,7 +1154,7 @@ public partial class MapPage : ContentPage
             currentFirebaseUserId,
             lat,
             lng,
-            targetFriendId);
+            targetFriendIds);
 
         if (requestId == null)
         {
@@ -1127,7 +1164,7 @@ public partial class MapPage : ContentPage
 
         await DisplayAlertAsync(
             "Alert sent",
-            string.IsNullOrEmpty(targetFriendId)
+            targetFriendIds.Length > 1
                 ? "Your friends will be notified shortly."
                 : "Your friend will be notified shortly.",
             "OK");
@@ -1137,7 +1174,6 @@ public partial class MapPage : ContentPage
     // Handles when App is open and getting notification of a friend alert
     private async void HandleFriendAlert(IDictionary<string, string> data)
     {
-        Debug.WriteLine($"[FCM] rECEIVED NOTIF with: {data["type"]}");
         if (data.TryGetValue("type", out var type))
         {
             if (type == "friend_sos")
@@ -1201,6 +1237,21 @@ public partial class MapPage : ContentPage
                     Debug.WriteLine($"[FCM] friend request alert failed cuz: {e.Message}");
                 }
             }
+            else if (type == "alone_mode")
+            {
+                var pData = await _db.GetAlertRequestAsync(data["alertId"].ToString());
+                if (pData != null)
+                {
+                    // If they're sharing their location
+                    if (pData.TryGetValue("lat", out var lat) && pData.TryGetValue("lng", out var lng))
+                    {
+                        // Create a pin for the friend's location
+                        await MapView.EvaluateJavaScriptAsync($"createfriendMarker('{lng}','{lat}')");
+
+                        await MapView.EvaluateJavaScriptAsync($"flyToLoc('{lng}','{lat}')");
+                    }
+                }
+            }
         }
     }
 
@@ -1212,8 +1263,7 @@ public partial class MapPage : ContentPage
 
         var requestId = await _db.CreateFriendRequestAlertRequestAsync(
             currentFirebaseUserId,
-            _friendID
-        );
+            _friendID, "friendRequest");
 
         if (requestId == null)
         {
@@ -1583,6 +1633,8 @@ public partial class MapPage : ContentPage
                                               //Update markers from friends
             await GetAllVisibleAlerts();
 
+
+            // Send a notification to the friend that their request was accepted
             var requestId = await _db.CreateFriendRequestAlertRequestAsync(
             currentFirebaseUserId,
             frnd.UniqueId, "friendRequestAccepted");
