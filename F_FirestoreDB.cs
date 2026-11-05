@@ -101,10 +101,12 @@ namespace FENS_Connect
                 {
                     _user.UserSettings = new Dictionary<string, bool>();
                     _user.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY] = true; // default value
+                    _user.UserSettings[MapPage.UserProfile.LOCATION_CLOSE_FRIEND_ONLY_KEY] = true; // default value
                 }
                 var pSettingsData = new
                 {
-                    AlertsShownToFriends = _user.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY]
+                    AlertsShownToFriends = _user.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY],
+                    LocationSharedWithFriends = _user.UserSettings[MapPage.UserProfile.LOCATION_CLOSE_FRIEND_ONLY_KEY]
                 };
                 await pSettingsRef.Document("GeneralSettings").SetAsync(pSettingsData, SetOptions.MergeAll);
             }
@@ -163,6 +165,7 @@ namespace FENS_Connect
             {
                 Dictionary<string, object> setDict = set.ToDictionary();
                 myUser.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY] = (bool)setDict["AlertsShownToFriends"];
+                myUser.UserSettings[MapPage.UserProfile.LOCATION_CLOSE_FRIEND_ONLY_KEY] = (bool)setDict["LocationSharedWithFriends"];
             }
 
             return myUser;
@@ -184,7 +187,8 @@ namespace FENS_Connect
                 // Initialize the variable on the DB. just set to true by default
                 var pSettingsData = new
                 {
-                    AlertsShownToFriends = true
+                    AlertsShownToFriends = true,
+                    LocationSharedWithFriends = true
                 };
                 await pSettingsRef.Document("GeneralSettings").SetAsync(pSettingsData, SetOptions.MergeAll);
             }
@@ -213,7 +217,8 @@ namespace FENS_Connect
             // Initialize the variable on the DB. just set to true by default
             var pSettingsData = new
             {
-                AlertsShownToFriends = _user.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY]
+                AlertsShownToFriends = _user.UserSettings[MapPage.UserProfile.ALERTS_SHOWN_TO_FRIENDS_KEY],
+                LocationSharedWithFriends = _user.UserSettings[MapPage.UserProfile.LOCATION_CLOSE_FRIEND_ONLY_KEY]
             };
             await pSettingsRef.Document("GeneralSettings").SetAsync(pSettingsData, SetOptions.MergeAll);
         }
@@ -632,7 +637,6 @@ namespace FENS_Connect
             try
             {
                 await ConnectToDb();
-                Random ran = new Random();
                 var requestRef = myDb.Collection("AlertRequests").Document();
                 var data = new Dictionary<string, object>
                 {

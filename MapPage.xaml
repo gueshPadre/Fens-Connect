@@ -524,12 +524,14 @@
                             </Border>
                             <Label
                             Text="Alerts shown to friends"
+                            LineHeight="0.75"
                             WidthRequest="150"
-                            HeightRequest="30"
+                            HeightRequest="40"
                             HorizontalTextAlignment="Center"
+                            LineBreakMode="WordWrap"
                             Grid.Row="0"
                             Grid.Column="0"
-                            FontSize="22"
+                            FontSize="18"
                             TextColor="Black"/>
 
                             <Label
@@ -558,6 +560,64 @@
                                 <Image
                                 Source="checkmarkcentered.png"
                                 x:Name="alertsShownToFriendsCheckmark"
+                                IsVisible="True"
+                                WidthRequest="30"
+                                HeightRequest="30"/>
+                            </Grid>
+                        </Grid>
+
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            RowDefinitions="Auto,Auto">
+
+                            <Border
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Grid.RowSpan="2"
+                                StrokeThickness="0"
+                                BackgroundColor="Transparent">
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="LocationForCloseFriendsBoxClicked" />
+                                </Border.GestureRecognizers>
+
+                            </Border>
+                            <Label
+                                Text="Location shared with all your friends"
+                                LineHeight="0.75"
+                                WidthRequest="150"
+                                HeightRequest="40"
+                                HorizontalTextAlignment="Center"
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                FontSize="16"
+                                TextColor="Black"/>
+
+                            <Label
+                                Grid.Row="1"
+                                Text="When checked, your location is shared with all your friends. When unchecked, your location is only visible to your close friends."
+                                LineBreakMode="WordWrap"
+                                FontSize="7"
+                                Padding="30,2,30,0"
+                                HorizontalTextAlignment="Center"/>
+                            <!--Checkbox Grid-->
+                            <Grid
+                                Padding="10"
+                                Grid.RowSpan="2"
+                                Grid.Row="0"
+                                Grid.Column="1">
+                                <Image
+                                WidthRequest="30"
+                                HeightRequest="30"
+                                Source="logo_empty_y.png">
+
+                                    <Image.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="LocationForCloseFriendsBoxClicked" />
+                                    </Image.GestureRecognizers>
+                                </Image>
+                                <Image
+                                Source="checkmarkcentered.png"
+                                x:Name="locationSharedCheckmark"
                                 IsVisible="True"
                                 WidthRequest="30"
                                 HeightRequest="30"/>

@@ -30,6 +30,7 @@ public partial class MapPage : ContentPage
         public Dictionary<string, bool> UserSettings { get; set; } = new Dictionary<string, bool>();
 
         public const string ALERTS_SHOWN_TO_FRIENDS_KEY = "AlertsShownToFriends";
+        public const string LOCATION_CLOSE_FRIEND_ONLY_KEY = "LocationOnlySentToCloseFriends";
 
     }
 
@@ -1036,6 +1037,12 @@ public partial class MapPage : ContentPage
         GeneralSettingsGrid.IsVisible = false;
     }
 
+    private async void ShowLocationForCloseFriendsOnAlertOptions(object? sender, EventArgs e)
+    {
+
+    }
+
+
     private async void BackFromAloneModeSettings(object? sender, EventArgs e)
     {
         await BackToSettingsMenu();
@@ -1082,6 +1089,14 @@ public partial class MapPage : ContentPage
         _db.UpdateSettings(currentFirebaseUserId, CurrentUser);
     }
 
+    private void LocationForCloseFriendsBoxClicked(object? sender, TappedEventArgs e)
+    {
+        locationSharedCheckmark.IsVisible = !locationSharedCheckmark.IsVisible;
+        CurrentUser!.UserSettings[UserProfile.LOCATION_CLOSE_FRIEND_ONLY_KEY] = locationSharedCheckmark.IsVisible;
+        // later want to update only when going back to the settings menu, but for now, update it immediately
+        _db.UpdateSettings(currentFirebaseUserId, CurrentUser);
+    }
+
 
     private async void SendAlertToFriends(object? sender, EventArgs e)
     {
@@ -1119,7 +1134,7 @@ public partial class MapPage : ContentPage
             friendId = e.Parameter.ToString();
 
         Debug.WriteLine($"[TAP] Alerting specific friend with ID: {friendId}");
-        await SendCloudFriendAlertAsync(targetFriendIds: new string[] { friendId! });
+        await SendCloudFriendAlertAsync(targetFriendIds: [friendId!]);
     }
 
     private async Task SendCloudFriendAlertAsync(string[] targetFriendIds)
@@ -1149,6 +1164,8 @@ public partial class MapPage : ContentPage
                 Debug.WriteLine($"[FCM] Could not get location for alert: {ex.Message}");
             }
         }
+
+
 
         var requestId = await _db.CreateFriendAlertRequestAsync(
             currentFirebaseUserId,
@@ -1181,24 +1198,27 @@ public partial class MapPage : ContentPage
                 // If they're sharing their location
                 if (data.TryGetValue("lat", out var lat) && data.TryGetValue("lng", out var lng))
                 {
-                    // Create a pin for the friend's location
-                    await MapView.EvaluateJavaScriptAsync($"createfriendMarker('{lng}','{lat}')");
+                    if (lat != null && lat != "null")
+                    {
+                        // Create a pin for the friend's location
+                        await MapView.EvaluateJavaScriptAsync($"createfriendMarker('{lng}','{lat}')");
 
-                    await MapView.EvaluateJavaScriptAsync($"flyToLoc('{lng}','{lat}')");
+                        await MapView.EvaluateJavaScriptAsync($"flyToLoc('{lng}','{lat}')");
 
-                    // get distance between the two
-                    string url =
-                        $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
-                        $"{currentLoc.Longitude},{currentLoc.Latitude};{lng},{lat}" +
-                        $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
+                        // get distance between the two
+                        string url =
+                            $"https://api.mapbox.com/directions/v5/mapbox/walking/" +
+                            $"{currentLoc.Longitude},{currentLoc.Latitude};{lng},{lat}" +
+                            $"?alternatives=true&geometries=geojson&language=en&overview=full&steps=true&access_token={Token}";
 
-                    await Task.Delay(2000);     // wait 2 seconds to let time to see where homeboy is
-
+                        await Task.Delay(2000);     // wait 2 seconds to let time to see where homeboy is
                     Debug.WriteLine($"[FCM] Friend wants to send an SOS");
                     if (data.TryGetValue("fromName", out var frmName))
                         await GetDirrectionsAsync(url, frmName);
                     else
                         await GetDirrectionsAsync(url, "A friend");
+                    }
+                    // Received the alert but is not a close friend. 
 
                 }
                 // Do whatever you want here
@@ -1240,11 +1260,26 @@ public partial class MapPage : ContentPage
             else if (type == "alone_mode")
             {
                 var pData = await _db.GetAlertRequestAsync(data["alertId"].ToString());
+                // data = data from the notification, pData = data from the database
+                if (data.TryGetValue("lat", out var pLat))
+                {
+                    Debug.WriteLine($"[FCM - AloneMode] Entered alone mode notif {pLat}");
+                    if (pLat == null || pLat == "null")
+                    {
+                        Debug.WriteLine($"[FCM - AloneMode] NOT A CLOSE FRIEND");
+                        // is not a close friend so don't show the location, just show the alert
+                        //TODO: show the alert in a popup with the option to call or send a message to the user
+                        await DisplayAlertAsync("Alone Mode Alert", "A friend is in Alone Mode", "OK");
+                        return;
+                    }
+                }
+
                 if (pData != null)
                 {
                     // If they're sharing their location
                     if (pData.TryGetValue("lat", out var lat) && pData.TryGetValue("lng", out var lng))
                     {
+                        Debug.WriteLine($"[FCM - AloneMode] IS A CLOSE FRIEND");
                         // Create a pin for the friend's location
                         await MapView.EvaluateJavaScriptAsync($"createfriendMarker('{lng}','{lat}')");
 
